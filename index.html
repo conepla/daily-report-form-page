@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YkPCAeUS9vazFdXOFyBHGAPpuXeCa2hdQ/u/ry+Rv/U='; style-src 'sha256-yQ7Lea6MoMcA7Ne6iuANGnn1/ENUx4hi/hisQA3OLns='; connect-src https://script.google.com/macros/s/AKfycbxFATl0jolr2Zn7HLqEV-F2Igt6a_QANu9hLqgHYcm-0g1H2EE6zd96xZ9jY4dbhpU1-w/exec https://script.googleusercontent.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-zfNVOLnbNqiHBCZjOWRF90qqPHHTFki7LKZlIP7ya0I='; style-src 'sha256-yQ7Lea6MoMcA7Ne6iuANGnn1/ENUx4hi/hisQA3OLns='; connect-src https://script.google.com/macros/s/AKfycbxFATl0jolr2Zn7HLqEV-F2Igt6a_QANu9hLqgHYcm-0g1H2EE6zd96xZ9jY4dbhpU1-w/exec https://script.googleusercontent.com; img-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -216,6 +216,7 @@ const TEXT = {
     loading: '読み込み中…',
     loadFailed: '読み込めませんでした。通信の状態を確かめて、ページを開き直してください。',
     badAddress: 'このアドレスは使えません。Slack の DM で届いた、あなた専用のアドレスから開いてください。分からないときは管理者に連絡してください。',
+    swBlocked: 'このページを安全に開けませんでした。ページを閉じて、もう一度開いてください。続くときは管理者に連絡してください。',
     remindLabel: '毎日のリマインド（Slack の DM）を受け取る',
     remindNote: 'オフにすると、毎日の DM は届きません。作業した日は、ブックマークしたこのアドレスから報告してください。',
     remindOn: '毎日のリマインドをオンにしました。',
@@ -312,6 +313,7 @@ const TEXT = {
     loading: 'Loading…',
     loadFailed: 'Could not load. Please check your connection and reload the page.',
     badAddress: 'This address does not work. Please open it from your personal address sent to you by Slack DM. If you are not sure, contact your manager.',
+    swBlocked: 'This page could not be opened safely. Close it and open it again. If this keeps happening, contact your manager.',
     remindLabel: 'Get a daily reminder (Slack DM)',
     remindNote: 'If you turn it off, you will not get the daily DM. On days you work, report from this bookmarked address.',
     remindOn: 'Daily reminder is on.',
@@ -974,6 +976,15 @@ function gateView(ja, en) {
 }
 function start() {
   if (window.top !== window.self) return;
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.getRegistrations().then(function (list) {
+      list.forEach(function (reg) { if (location.href.indexOf(reg.scope) === 0) reg.unregister(); });
+    }, function () {});
+    if (navigator.serviceWorker.controller) {
+      gateView(TEXT.ja.swBlocked, TEXT.en.swBlocked);
+      return;
+    }
+  }
   if (!KEY) {
     gateView(TEXT.ja.badAddress, TEXT.en.badAddress);
     return;

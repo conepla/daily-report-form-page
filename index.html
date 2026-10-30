@@ -2,30 +2,998 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-mADoJ69ZFUbbOEkB3kZlaS2NFOhxkQfYCZJwYs0QzoQ='; style-src 'sha256-/c8SMis7TBENcFAKtHvQEvrV0na62v+AInQsiDba4x4='; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YkPCAeUS9vazFdXOFyBHGAPpuXeCa2hdQ/u/ry+Rv/U='; style-src 'sha256-yQ7Lea6MoMcA7Ne6iuANGnn1/ENUx4hi/hisQA3OLns='; connect-src https://script.google.com/macros/s/AKfycbxFATl0jolr2Zn7HLqEV-F2Igt6a_QANu9hLqgHYcm-0g1H2EE6zd96xZ9jY4dbhpU1-w/exec https://script.googleusercontent.com; img-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>接続の確認</title>
-<style>body{font-family:sans-serif;margin:24px;line-height:1.7;color:#1B2433}#r{font-weight:bold}</style>
+<title>作業報告 / Work report</title>
+<style>
+  :root {
+    --ink: #1B2433; --muted: #4F5B6B; --sub: #3A4555;
+    --line: #D5DBE3; --line2: #E4E8ED; --field: #C4CCD6;
+    --ground: #F1F3F6; --surface: #FFFFFF; --soft: #F7F9FB;
+    --accent: #24489B; --accent-ink: #1A3577; --accent-soft: #E4EBF8;
+    --warn: #8A4A06; --warn-soft: #FDF1E4; --warn-btn: #A04A08;
+    --faint: #A9B3C0;
+    --sun: #B3261E; --sat: #24489B;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: 'BIZ UDPGothic', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', 'Yu Gothic', 'Noto Sans JP', Meiryo, sans-serif; font-size: 15px; line-height: 1.5; }
+  button, input, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  button:disabled { cursor: default; }
+  :focus-visible { outline: 3px solid #E8912D; outline-offset: 2px; }
+  .sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .app { min-height: 100vh; display: flex; flex-direction: column; }
+  .hd { height: 40px; flex: none; padding: 0 14px; background: var(--surface); border-bottom: 1px solid var(--line2); display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--muted); }
+  .hd b { color: var(--ink); font-size: 14px; }
+  .hd-link { height: 40px; padding: 0; border: 0; background: transparent; color: var(--accent); font-size: 13px; font-weight: 700; }
+  .body { flex: 1; width: 100%; max-width: 480px; margin: 0 auto; padding: 8px 14px 0; display: flex; flex-direction: column; gap: 6px; }
+  .entry { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  .strip { padding: 5px 4px 6px; display: flex; align-items: stretch; gap: 2px; }
+  .arrow { width: 26px; flex: none; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 12px; }
+  .arrow:disabled { opacity: 0.3; }
+  .strip-days { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .strip-wd, .strip-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; text-align: center; }
+  .strip-wd { font-size: 11px; font-weight: 700; color: var(--muted); }
+  .sun { color: var(--sun); } .sat { color: var(--sat); }
+  .day-cell { height: 42px; padding: 0; border-radius: 8px; border: 2px solid transparent; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; }
+  .day-cell .num { font-size: 15px; font-weight: 700; }
+  .day-cell .mk { height: 12px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .day-cell.done { background: var(--accent-soft); color: var(--accent-ink); }
+  .day-cell.today .mk, .day-cell.req .mk { color: var(--accent); }
+  .day-cell.off.sun-d { color: var(--sun); } .day-cell.off.sat-d { color: var(--sat); }
+  .day-cell.future, .day-cell.other { color: #C9D0D9; }
+  .day-cell.selected { border-color: var(--ink); background: var(--surface); }
+  .side { display: none; }
+  .mcal { padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+  .mcal-title { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; color: var(--muted); padding: 0 2px 2px; }
+  .mcal-title .arrow { height: 26px; }
+  .mcal-wd, .mcal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; text-align: center; }
+  .mcal-wd { font-size: 12px; font-weight: 700; color: var(--muted); }
+  .mcal .day-cell { height: 46px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 4px 2px 0; font-size: 11px; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+  .legend i.lg-sent { background: #E4EBF8; }
+  .date-row { min-height: 24px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+  .date-row b { color: var(--ink); font-size: 14px; }
+  .pill { margin-left: 6px; font-size: 11px; font-weight: 700; border-radius: 4px; padding: 1px 6px; }
+  .pill.done { color: var(--accent-ink); background: var(--accent-soft); }
+  .pill.req { color: var(--accent); background: var(--surface); box-shadow: inset 0 0 0 1px var(--accent); }
+  .pill.approved { color: var(--accent-ink); background: var(--accent-soft); }
+  .pill.rejected { color: #FFFFFF; background: var(--warn-btn); }
+  .lock-mark { margin-right: 3px; font-size: 11px; }
+  .req-note { margin: 0; padding: 6px 10px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-size: 12px; line-height: 1.4; }
+  .req-note p { margin: 0; }
+  .req-row { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0 16px; }
+  .clear-card { padding: 12px 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-size: 14px; }
+  .clear-card p { margin: 0; }
+  .linkish { flex: none; height: 28px; padding: 0 2px; border: 0; background: transparent; color: var(--accent); font-size: 13px; font-weight: 700; }
+  .linkish.danger { color: var(--warn-btn); }
+  .del-confirm { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 4px 10px; font-size: 13px; color: var(--warn); }
+  .del-yes { height: 30px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--warn-btn); color: #FFFFFF; font-size: 13px; font-weight: 700; }
+  .notice { margin: 0; padding: 6px 10px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink); font-size: 12px; line-height: 1.4; }
+  .no-tasks { margin: 0; padding: 12px; border-radius: 10px; background: var(--warn-soft); color: var(--warn); font-size: 14px; font-weight: 700; }
+  .task-row { height: 52px; padding: 4px 6px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line2); }
+  .task-row:last-child { border-bottom: 0; }
+  .step { width: 44px; height: 44px; flex: none; border-radius: 9px; border: 1px solid var(--field); background: var(--surface); color: var(--ink); font-size: 22px; font-weight: 700; line-height: 1; }
+  .step.plus { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
+  .step:disabled { opacity: 0.35; }
+  .mid { flex: 1; min-width: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding: 0 2px; }
+  .mid .name { min-width: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mid .h { flex: none; font-size: 17px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .mid .h.zero { color: var(--faint); font-weight: 400; font-size: 14px; }
+  .comment { display: block; width: 100%; height: 44px; min-height: 44px; max-height: 88px; padding: 10px; border: 1px solid var(--field); border-radius: 8px; background: var(--surface); font-size: 16px; line-height: 1.4; resize: none; overflow-y: auto; }
+  .ft { position: sticky; bottom: 0; margin: auto -14px 0; padding: 8px 14px 10px; background: var(--surface); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+  .ft-row { display: flex; align-items: center; gap: 12px; }
+  .totals { flex: none; display: flex; flex-direction: column; line-height: 1.25; font-size: 12px; color: var(--muted); }
+  .totals b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .totals .big { font-size: 20px; }
+  .send { flex: 1; height: 48px; border: 0; border-radius: 10px; background: var(--accent); color: #FFFFFF; font-size: 16px; font-weight: 700; }
+  .send:disabled { opacity: 0.5; }
+  .warn { margin: 0; font-size: 12px; color: var(--warn); }
+  .error { margin: 0; font-size: 13px; font-weight: 700; color: var(--warn); }
+  .done-view { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 16px 0; text-align: center; }
+  .stamp { width: 88px; height: 88px; border-radius: 50%; border: 3px solid var(--accent); display: grid; place-items: center; color: var(--accent); transform: rotate(-8deg); font-size: 19px; font-weight: 700; letter-spacing: 0.06em; }
+  .done-title { margin: 0; font-size: 17px; font-weight: 700; }
+  .hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .list { width: 100%; text-align: left; }
+  .list-item { padding: 10px 14px; border-bottom: 1px solid var(--line2); display: flex; justify-content: space-between; gap: 12px; }
+  .list-item:last-child { border-bottom: 0; }
+  .num-strong { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .comment-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .btn-row { display: flex; gap: 8px; width: 100%; }
+  .btn-outline, .btn-fill { flex: 1; height: 46px; border-radius: 8px; font-size: 14px; font-weight: 700; }
+  .btn-outline { border: 1px solid var(--accent); background: var(--surface); color: var(--accent); }
+  .btn-fill { border: 0; background: var(--accent); color: #FFFFFF; }
+  .summary { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .summary-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .summary .big { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .stat { border-radius: 8px; padding: 6px 10px; display: flex; flex-direction: column; background: var(--ground); }
+  .stat .k { font-size: 12px; color: var(--muted); }
+  .stat .v { font-size: 16px; font-weight: 700; }
+  .month-note { margin: 2px 2px 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .month-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .month-nav b { font-size: 15px; }
+  .month-nav .linkish:disabled { color: var(--faint); }
+  .day-head { display: none; }
+  .day { padding: 8px 12px; border-bottom: 1px solid var(--line2); display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+         grid-template-areas: "date hours btn" "status tasks btn" "comment comment btn"; column-gap: 8px; row-gap: 2px; align-items: center; }
+  .d-status:empty { display: none; }
+  .day:last-child { border-bottom: 0; }
+  .d-date { grid-area: date; font-weight: 700; white-space: nowrap; }
+  .d-status { grid-area: status; white-space: nowrap; }
+  .d-hours { grid-area: hours; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .d-tasks { grid-area: tasks; }
+  .d-comment { grid-area: comment; }
+  .d-tasks, .d-comment { min-width: 0; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .d-tasks:empty, .d-comment:empty { display: none; }
+  .d-status .note { font-size: 12px; color: var(--muted); }
+  .d-date.sun { color: var(--sun); } .d-date.sat { color: var(--sat); }
+  .d-actions { grid-area: btn; display: flex; gap: 6px; justify-content: flex-end; }
+  .day-btn { height: 36px; padding: 0 10px; border: 1px solid var(--accent); border-radius: 8px; background: var(--surface); color: var(--accent); font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .day-btn:disabled { opacity: 0.5; }
+  .lock { margin: 0; font-size: 12px; color: var(--muted); }
+  .remind { display: flex; align-items: center; gap: 8px; padding: 10px 12px; font-size: 14px; font-weight: 700; }
+  .remind input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+  .remind-note { margin: -6px 0 0; font-size: 12px; color: var(--muted); }
+  .month > #reissue { align-self: flex-start; }
+  .month > .reissue-confirm { justify-content: flex-start; }
+  .gate { max-width: 560px; margin: 0 auto; padding: 32px 20px; }
+  .gate p { margin: 0 0 12px; }
+  .gate .en { color: var(--muted); }
+  .feedback-link { align-self: flex-start; height: 36px; padding: 0 2px; border: 0; background: transparent; color: var(--accent); font-size: 13px; font-weight: 700; }
+  .fb-title { margin: 8px 0 0; font-size: 17px; }
+  .feedback-text { display: block; width: 100%; min-height: 160px; padding: 10px; border: 1px solid var(--field); border-radius: 8px; background: var(--surface); font-size: 16px; line-height: 1.5; resize: vertical; }
+  .fb-actions { display: flex; gap: 8px; }
+  .fb-actions .send { flex: none; padding: 0 28px; }
+  .thanks { margin: 0; padding: 14px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; }
+  @media (min-width: 768px) {
+    .body { max-width: 1100px; padding: 16px 24px 16px; display: grid; grid-template-columns: 380px minmax(0, 1fr); align-items: start; gap: 24px; }
+    .body.single { display: flex; max-width: 640px; }
+    .side { display: block; }
+    .strip { display: none; }
+    .ft { position: static; margin: 4px 0 0; border: 1px solid var(--line); border-radius: 10px; }
+    .body.month { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+    .summary { flex-direction: row; align-items: center; gap: 28px; padding: 14px 20px; }
+    .summary-top { flex-direction: column; align-items: flex-start; gap: 0; min-width: 150px; }
+    .stats { flex: 1; grid-template-columns: repeat(3, minmax(0, 170px)); gap: 10px; }
+    .day-head, .day { grid-template-columns: 150px 170px 70px minmax(0, 1.3fr) minmax(0, 1fr) 130px;
+                      grid-template-areas: "date status hours tasks comment btn"; column-gap: 14px; padding: 6px 16px; }
+    .day-head { display: grid; padding: 8px 16px; background: var(--soft); border-bottom: 1px solid var(--line); border-radius: 10px 10px 0 0; font-size: 12px; font-weight: 700; color: var(--muted); }
+    .day { min-height: 44px; }
+    .d-tasks:empty, .d-comment:empty, .d-status:empty { display: block; }
+    .d-tasks, .d-comment { font-size: 13px; color: var(--sub); }
+    .day-btn { height: 32px; }
+  }
+</style>
 </head>
 <body>
-<h1>接続の確認</h1>
-<p id="r">確認しています…</p>
+<div id="app" class="app"></div>
+
 <script>
-(function () {
-  var r = document.getElementById('r');
-  if (window.top !== window.self) { r.textContent = ''; return; }
-  fetch('https://script.google.com/macros/s/AKfycbxFATl0jolr2Zn7HLqEV-F2Igt6a_QANu9hLqgHYcm-0g1H2EE6zd96xZ9jY4dbhpU1-w/exec', {
+const API_URL = 'https://script.google.com/macros/s/AKfycbxFATl0jolr2Zn7HLqEV-F2Igt6a_QANu9hLqgHYcm-0g1H2EE6zd96xZ9jY4dbhpU1-w/exec';
+function readKey() {
+  if (/[?&]k=/.test(location.search)) return '';
+  const m = /(?:^#|&)k=(nk_[a-f0-9]{64})/.exec(location.hash);
+  return m ? m[1] : '';
+}
+const KEY = readKey();
+let BOOT = null;
+let LANG = 'ja';
+const TEXT = {
+  ja: {
+    weekdays: ['日', '月', '火', '水', '木', '金', '土'],
+    toMonth: '今月の記録 ›',
+    back: '‹ 入力に戻る',
+    workOf: '{date}の作業',
+    copyPrev: '前回と同じ ›',
+    copied: '{date}の内容を入れました。違うところは直して送信してください。',
+    noPrev: '前回の報告がありません。',
+    comment: '一言コメント（必須）',
+    needComment: '一言コメントを書いてください。',
+    thisDay: 'この日',
+    thisMonth: '今月',
+    monthOf: '{m}月',
+    send: '報告を送信する',
+    resend: '直した内容を送信する',
+    sending: '送信中…',
+    noTasks: '作業内容がまだ設定されていません。管理者に連絡してください。',
+    needHours: '時間を入れてください。作業しなかった日は、報告は要りません。',
+    needHoursDel: '時間を入れてください。この日の報告を消すときは「この日の報告を消す」を押してください。',
+    deleteReport: 'この日の報告を消す',
+    deleteAsk: 'この日の報告を消しますか？',
+    deleteYes: '消す', deleteNo: 'やめる',
+    deleted: '{date}の報告を消しました（作業なし）。',
+    over24: '1日の合計が24時間を超えています。',
+    overWarn: '{n}時間を超えています。休憩時間が入っていないか確認してください。',
+    title: '作業報告',
+    keyGone: 'このアドレスは使えなくなりました。Slack の DM で届いた新しいアドレスから開き直して、もう一度入力してください。',
+    network: '通信できませんでした。電波の良いところで、もう一度送信してください。',
+    serverError: 'うまく処理できませんでした。少し待ってから、もう一度お試しください。',
+    loading: '読み込み中…',
+    loadFailed: '読み込めませんでした。通信の状態を確かめて、ページを開き直してください。',
+    badAddress: 'このアドレスは使えません。Slack の DM で届いた、あなた専用のアドレスから開いてください。分からないときは管理者に連絡してください。',
+    remindLabel: '毎日のリマインド（Slack の DM）を受け取る',
+    remindNote: 'オフにすると、毎日の DM は届きません。作業した日は、ブックマークしたこのアドレスから報告してください。',
+    remindOn: '毎日のリマインドをオンにしました。',
+    remindOff: '毎日のリマインドをオフにしました。作業した日は、このアドレスから報告してください。',
+    reissueLink: 'このアドレスを作り直す',
+    reissueAsk: '作り直すと、今のアドレスは使えなくなります。新しいアドレスは Slack の DM に届きます。',
+    reissueYes: '作り直す',
+    reissued: '新しいアドレスを Slack の DM に送りました。このページ（前のアドレス）は使えなくなりました。DM のアドレスをブックマークし直してください。',
+    minus: '{task}を1時間減らす',
+    plus: '{task}を1時間増やす',
+    prevWeek: '前の7日',
+    nextWeek: '次の7日',
+    marks: { done: '済', today: '今日', req: '申請中' },
+    pills: { done: '送信済み' },
+    legend: ['報告済み'],
+    legendNote: '報告がない日は作業なし',
+    monthTitle: '{y}年{m}月',
+    stamp: '送信済',
+    sentTitle: '{date}の報告を送信しました',
+    total: '合計 {h}',
+    edit: '内容を直す',
+    viewMonth: '今月の記録を見る',
+    viewMonthOf: '{m}月の記録を見る',
+    monthTotal: '{m}月の合計',
+    reported: '報告した日',
+    days: '{n}日',
+    actEdit: '修正する', actWrite: '報告を書く',
+    notYet: 'まだ書いていません',
+    monthNote: '報告がない日は「作業なし」として扱います。今日と前の{days}間は、ボタンからそのまま書いたり直したり（報告を消したり）できます。それより前の日（🔒）は、理由を書いて管理者に申請してください。承認されると反映されます。',
+    lock: 'このアドレスは{name}さん専用です。ブックマークしてお使いください。人に見せないでください。',
+    listSep: '、',
+    feedbackLink: '改善要望を送る ›',
+    feedbackTitle: '改善要望を送る',
+    feedbackHint: 'この報告の仕組みについて、使いにくいところや、ほしい機能など、気づいたことを自由に書いてください。送った内容は、あなたの名前と一緒に管理者に届き、改善に使います。',
+    feedbackPlaceholder: '例：カレンダーの文字をもう少し大きくしてほしい',
+    feedbackSend: '送信する',
+    feedbackThanks: '送信しました。ありがとうございました。',
+    feedbackAgain: '続けて送る',
+    head: ['日付', '状態', '時間', '作業内容', '一言コメント'],
+    prevMonth: '前の月', nextMonth: '次の月',
+    closedMark: '締め切り後',
+    closedNote: 'この日は締め切り（今日と前の{days}間）を過ぎています。理由を書いて申請すると、管理者の承認後に反映されます。',
+    pendingNote: '締め切り後の日です。{at}に申請した内容を表示しています（承認待ち）。もう一度申請すると、前の申請と入れ替わります。',
+    pendingClearNote: '締め切り後の日です。{at}に「報告の取り消し」を申請しています（承認待ち）。報告を申請すると、前の申請と入れ替わります。',
+    rejectedNote: '{at}の申請は却下されました。',
+    rejectedReason: '却下の理由：{reason}',
+    reason: '申請の理由（必須）例：送り忘れていました',
+    needReason: '申請の理由を書いてください。',
+    needHoursReq: '時間を入れてください。作業しなかった日は、申請は要りません。',
+    needHoursReqClear: '時間を入れてください。この日の報告を消すときは「報告の取り消しを申請する」を押してください。',
+    reqNew: '報告を申請する', reqFix: '修正を申請する', reqClear: '取り消しを申請する',
+    toClear: '報告の取り消しを申請する ›', backToReport: '‹ 報告の申請に切り替える',
+    clearReqText: 'この日の報告を消すよう申請します（承認されると作業なしになります）。理由を書いて送ってください。',
+    clearItem: '報告の取り消し（この日の報告を消す）',
+    withdraw: '申請を取り下げる',
+    withdrawn: '{date}の申請を取り下げました。',
+    reqStamp: '申請済',
+    reqSentTitle: '{date}の申請を送りました',
+    reqSentHint: '管理者が承認すると反映されます。結果はSlackのDMでお知らせします。',
+    reasonLabel: '理由：{reason}',
+    reqPills: { pending: '申請中', approved: '承認済み', rejected: '却下' },
+    reqPillClear: '取り消しを申請中',
+    actReq: '申請する', actReqFix: '修正を申請'
+  },
+  en: {
+    weekdays: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+    toMonth: 'This month ›',
+    back: '‹ Back',
+    workOf: 'Work on {date}',
+    copyPrev: 'Same as last time ›',
+    copied: 'Filled in from {date}. Change anything that differs, then send.',
+    noPrev: 'No previous report found.',
+    comment: 'Short comment (required)',
+    needComment: 'Please write a short comment.',
+    thisDay: 'This day',
+    thisMonth: 'This month',
+    monthOf: '{mon}',
+    send: 'Send report',
+    resend: 'Send changes',
+    sending: 'Sending…',
+    noTasks: 'No work items are set up for you yet. Please contact your manager.',
+    needHours: 'Please enter your hours. If you did not work that day, no report is needed.',
+    needHoursDel: 'Please enter your hours. To remove this day\'s report, use "Remove this day\'s report".',
+    deleteReport: 'Remove this day\'s report',
+    deleteAsk: 'Remove this day\'s report?',
+    deleteYes: 'Remove', deleteNo: 'Cancel',
+    deleted: 'Removed the report for {date} (no work).',
+    over24: 'The total for one day is over 24 hours.',
+    overWarn: 'Over {n} hours. Check that breaks are excluded.',
+    title: 'Work report',
+    keyGone: 'This address no longer works. Please open the new address sent to you by Slack DM and enter it again.',
+    network: 'Could not connect. Please try sending again where the signal is good.',
+    serverError: 'Something went wrong. Please wait a moment and try again.',
+    loading: 'Loading…',
+    loadFailed: 'Could not load. Please check your connection and reload the page.',
+    badAddress: 'This address does not work. Please open it from your personal address sent to you by Slack DM. If you are not sure, contact your manager.',
+    remindLabel: 'Get a daily reminder (Slack DM)',
+    remindNote: 'If you turn it off, you will not get the daily DM. On days you work, report from this bookmarked address.',
+    remindOn: 'Daily reminder is on.',
+    remindOff: 'Daily reminder is off. On days you work, report from this address.',
+    reissueLink: 'Renew this address',
+    reissueAsk: 'If you renew it, this address will stop working. The new address will be sent to you by Slack DM.',
+    reissueYes: 'Renew',
+    reissued: 'We sent the new address to you by Slack DM. This page (the old address) no longer works. Please bookmark the address in the DM.',
+    minus: 'Remove 1 hour from {task}',
+    plus: 'Add 1 hour to {task}',
+    prevWeek: 'Previous 7 days',
+    nextWeek: 'Next 7 days',
+    marks: { done: '✓', today: 'Today', req: 'Req' },
+    pills: { done: 'Sent' },
+    legend: ['Sent'],
+    legendNote: 'No report = no work',
+    monthTitle: '{mon} {y}',
+    stamp: 'SENT',
+    sentTitle: 'Report sent for {date}',
+    total: 'Total {h}',
+    edit: 'Edit',
+    viewMonth: 'View this month',
+    viewMonthOf: 'View {mon}',
+    monthTotal: '{mon} total',
+    reported: 'Reported',
+    days: '{n} days',
+    day1: '1 day',
+    actEdit: 'Edit', actWrite: 'Write',
+    notYet: 'Not written yet',
+    monthNote: 'Days without a report count as no work. Today and the previous {days} can be written, fixed, or removed directly with the buttons. For earlier days (🔒), send a request with a reason; it is applied once a manager approves it.',
+    lock: 'This address is just for {name}. Bookmark it to use it, and do not show it to others.',
+    listSep: ', ',
+    feedbackLink: 'Send feedback ›',
+    feedbackTitle: 'Send feedback',
+    feedbackHint: 'Tell us anything about this reporting tool, such as what is hard to use or what you would like to have. Your feedback reaches the managers together with your name and is used to improve the tool.',
+    feedbackPlaceholder: 'e.g. Please make the calendar text a little larger',
+    feedbackSend: 'Send',
+    feedbackThanks: 'Sent. Thank you for your feedback!',
+    feedbackAgain: 'Send another',
+    head: ['Date', 'Status', 'Hours', 'Work', 'Comment'],
+    prevMonth: 'Previous month', nextMonth: 'Next month',
+    closedMark: 'Past deadline',
+    closedNote: 'Past the deadline (today and the previous {days}). Send a request with a reason; it is applied once a manager approves it.',
+    pendingNote: 'Past the deadline. This is your request from {at} (waiting for approval). Sending again replaces it.',
+    pendingClearNote: 'Past the deadline. You requested to remove this report at {at} (waiting for approval). Requesting a report replaces it.',
+    rejectedNote: 'Your request from {at} was rejected.',
+    rejectedReason: 'Reason: {reason}',
+    reason: 'Reason (required), e.g. I forgot to send it',
+    needReason: 'Please write the reason for your request.',
+    needHoursReq: 'Please enter your hours. If you did not work that day, no request is needed.',
+    needHoursReqClear: 'Please enter your hours. To remove this day\'s report, use "Request report removal".',
+    reqNew: 'Request this report', reqFix: 'Request this change', reqClear: 'Request removal',
+    toClear: 'Request report removal ›', backToReport: '‹ Switch to a report request',
+    clearReqText: 'Request to remove this day\'s report (once approved, the day counts as no work). Write the reason and send.',
+    clearItem: 'Remove this day\'s report',
+    withdraw: 'Withdraw request',
+    withdrawn: 'Withdrew your request for {date}.',
+    reqStamp: 'SENT',
+    reqSentTitle: 'Request sent for {date}',
+    reqSentHint: 'It is applied once a manager approves it. You will get the result by Slack DM.',
+    reasonLabel: 'Reason: {reason}',
+    reqPills: { pending: 'Requested', approved: 'Approved', rejected: 'Rejected' },
+    reqPillClear: 'Req: remove',
+    actReq: 'Request', actReqFix: 'Request fix'
+  }
+};
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_EN_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const WD_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+function t(key, params) {
+  let s = TEXT[LANG][key];
+  Object.keys(params || {}).forEach(function (k) { s = s.split('{' + k + '}').join(String(params[k])); });
+  return s;
+}
+let S = null;
+function initState() {
+  return {
+  date: BOOT.today,
+  weekEnd: BOOT.today,
+  hours: {},
+  comment: '',
+  reason: '',
+  clearMode: false,
+  confirmDel: false,
+  confirmReissue: false,
+  view: 'form',
+  calMonth: BOOT.today.slice(0, 7),
+  listMonth: BOOT.today.slice(0, 7),
+  feedback: '',
+  feedbackSent: false,
+  submitted: false,
+  sentKind: 'report',
+  busy: false,
+  error: '',
+  notice: '',
+  tasks: BOOT.data.tasks,
+  records: BOOT.data.records,
+  requests: BOOT.data.requests,
+  openFrom: BOOT.data.openFrom,
+  minDate: BOOT.data.minDate,
+  backDays: BOOT.data.backDays,
+  prev: BOOT.data.prev,
+  remind: BOOT.remind
+  };
+}
+function applyData(data) {
+  S.tasks = data.tasks;
+  S.records = data.records;
+  S.requests = data.requests;
+  S.openFrom = data.openFrom;
+  S.minDate = data.minDate;
+  S.backDays = data.backDays;
+}
+function el(tag, props) {
+  const node = document.createElement(tag);
+  const p = props || {};
+  Object.keys(p).forEach(function (k) {
+    const v = p[k];
+    if (v === null || v === undefined || v === false) return;
+    if (k === 'class') node.className = v;
+    else if (k === 'on') Object.keys(v).forEach(function (ev) { node.addEventListener(ev, v[ev]); });
+    else if (k === 'disabled') node.disabled = true;
+    else if (k === 'value') node.value = v;
+    else node.setAttribute(k, v === true ? '' : String(v));
+  });
+  for (let i = 2; i < arguments.length; i++) add(node, arguments[i]);
+  return node;
+}
+function add(node, c) {
+  if (c === null || c === undefined || c === false) return;
+  if (Array.isArray(c)) { c.forEach(function (x) { add(node, x); }); return; }
+  node.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+}
+function pad(n) { return (n < 10 ? '0' : '') + n; }
+function parts(ymd) { return ymd.split('-').map(Number); }
+function weekday(ymd) { const p = parts(ymd); return new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay(); }
+function shift(ymd, days) {
+  const p = parts(ymd);
+  const d = new Date(Date.UTC(p[0], p[1] - 1, p[2] + days));
+  return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
+}
+function dayLabel(ymd) {
+  const p = parts(ymd);
+  if (LANG === 'en') return WD_EN[weekday(ymd)] + ', ' + MONTHS_EN[p[1] - 1] + ' ' + p[2];
+  return p[1] + '月' + p[2] + '日（' + TEXT.ja.weekdays[weekday(ymd)] + '）';
+}
+function dayCount(n) { return TEXT[LANG].day1 && n === 1 ? TEXT[LANG].day1 : t('days', { n: n }); }
+function fmt(h) { return LANG === 'en' ? h + 'h' : h + '時間'; }
+function monthDays(ym) {
+  const p = ym.split('-').map(Number);
+  const n = new Date(Date.UTC(p[0], p[1], 0)).getUTCDate();
+  const out = [];
+  for (let d = 1; d <= n; d++) out.push(ym + '-' + pad(d));
+  return out;
+}
+function shiftMonth(ym, n) {
+  const p = ym.split('-').map(Number);
+  const d = new Date(Date.UTC(p[0], p[1] - 1 + n, 1));
+  return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1);
+}
+function monthParams(ym) {
+  const p = ym.split('-').map(Number);
+  return { y: p[0], m: p[1], mon: MONTHS_EN_FULL[p[1] - 1] };
+}
+function sumRows(rows) { return rows.reduce(function (a, r) { return a + (Number(r.hours) || 0); }, 0); }
+function isClosed(ymd) { return ymd < S.openFrom; }
+function reqState(ymd) {
+  const q = S.requests[ymd];
+  if (!q) return '';
+  return q.status === '承認待ち' ? 'pending' : q.status === '承認' ? 'approved' : q.status === '却下' ? 'rejected' : '';
+}
+function lockMark() {
+  return el('span', { class: 'lock-mark', role: 'img', title: t('closedMark'), 'aria-label': t('closedMark') }, '🔒');
+}
+function statusOf(ymd) {
+  if (ymd < S.minDate) return 'other';
+  if (ymd > BOOT.today) return 'future';
+  if (S.records[ymd]) return 'done';
+  if (ymd === BOOT.today) return 'today';
+  const w = weekday(ymd);
+  if (w === 0 || w === 6) return 'off';
+  return 'empty';
+}
+function markOf(ymd, st) {
+  const M = TEXT[LANG].marks;
+  if (reqState(ymd) === 'pending') return M.req;
+  if (st === 'done') return M.done + ' ' + sumRows(S.records[ymd].rows) + 'h';
+  return M[st] || '';
+}
+function rowTasks() {
+  const list = S.tasks.slice();
+  const rec = S.records[S.date];
+  if (rec) rec.rows.forEach(function (r) { if (list.indexOf(r.task) < 0) list.push(r.task); });
+  return list;
+}
+function dayTotal() {
+  return rowTasks().reduce(function (a, task) { return a + (S.hours[task] || 0); }, 0);
+}
+function load(ymd) {
+  const q = isClosed(ymd) && reqState(ymd) === 'pending' ? S.requests[ymd] : null;
+  const rec = q ? (q.kind === 'clear' ? S.records[ymd] : q) : S.records[ymd];
+  S.date = ymd;
+  S.calMonth = ymd.slice(0, 7);
+  if (ymd > S.weekEnd || ymd <= shift(S.weekEnd, -7)) {
+    const end = shift(ymd, 3);
+    S.weekEnd = end > BOOT.today ? BOOT.today : end;
+  }
+  S.hours = {};
+  if (rec) rec.rows.forEach(function (r) { S.hours[r.task] = Number(r.hours) || 0; });
+  S.comment = rec ? rec.comment : '';
+  S.reason = q ? q.reason : '';
+  S.clearMode = !!(q && q.kind === 'clear' && S.records[ymd]);
+  S.confirmDel = false;
+  S.submitted = false;
+  S.error = '';
+  S.notice = '';
+  S.view = 'form';
+  render();
+}
+function copyPrev() {
+  const dates = Object.keys(S.records).filter(function (d) { return d < S.date; }).sort();
+  const last = dates.length ? { ymd: dates[dates.length - 1], rows: S.records[dates[dates.length - 1]].rows }
+    : (S.prev && S.prev.ymd < S.date ? S.prev : null);
+  S.error = '';
+  if (!last) { S.notice = t('noPrev'); render(); return; }
+  const shown = rowTasks();
+  S.hours = {};
+  last.rows.forEach(function (r) {
+    if (shown.indexOf(r.task) >= 0) S.hours[r.task] = Number(r.hours) || 0;
+  });
+  S.notice = t('copied', { date: dayLabel(last.ymd) });
+  render();
+}
+function step(task, diff) {
+  const v = (S.hours[task] || 0) + diff;
+  S.hours[task] = Math.max(0, Math.min(12, v));
+  S.error = '';
+  render();
+}
+function enteredRows() {
+  return rowTasks()
+    .filter(function (task) { return (S.hours[task] || 0) > 0; })
+    .map(function (task) { return { task: task, hours: S.hours[task] }; });
+}
+function failed(err) {
+  S.busy = false;
+  S.error = errText(err);
+  render();
+}
+function errText(err) {
+  const code = err && err.code;
+  if (code === 'KEY') return t('keyGone');
+  if (code === 'NET') return t('network');
+  if (code === 'BAD' || !(err && err.message)) return t('serverError');
+  return err.message;
+}
+function call_(fn, args, onOk, onErr) {
+  fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ fn: 'ping' }),
-    credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer'
+    body: JSON.stringify({ fn: fn, k: KEY, args: args }),
+    credentials: 'omit',
+    referrerPolicy: 'no-referrer',
+    cache: 'no-store'
   })
     .then(function (res) { return res.json(); })
-    .then(function (j) { r.textContent = j && j.ok && j.data === 'pong' ? 'OK：つながりました。' : 'NG：返事がおかしいです。'; })
-    .catch(function (e) { r.textContent = 'NG：つながりませんでした（' + e + '）'; });
-})();
+    .then(function (r) {
+      if (r && r.ok) { onOk(r.data); return; }
+      const err = new Error((r && r.error) || '');
+      err.code = (r && r.code) || 'ERR';
+      onErr(err);
+    }, function () {
+      const err = new Error('');
+      err.code = 'NET';
+      onErr(err);
+    });
+}
+function sendToServer(fn, args, kind) {
+  S.busy = true;
+  S.error = '';
+  render();
+  call_(fn, args, function (data) {
+    S.busy = false;
+    applyData(data);
+    S.sentKind = kind;
+    S.submitted = true;
+    render();
+    window.scrollTo(0, 0);
+  }, failed);
+}
+function submit() {
+  if (S.busy) return;
+  if (isClosed(S.date)) { sendRequest(S.clearMode ? 'clear' : 'report'); return; }
+  const rows = enteredRows();
+  S.error = !rows.length ? t(S.records[S.date] ? 'needHoursDel' : 'needHours') : sumRows(rows) > 24 ? t('over24') : !S.comment.trim() ? t('needComment') : '';
+  if (S.error) { render(); return; }
+  sendToServer('submitReport', [S.date, rows, S.comment], 'report');
+}
+function sendRequest(kind) {
+  if (S.busy) return;
+  const rows = kind === 'clear' ? [] : enteredRows();
+  S.error = '';
+  if (kind !== 'clear') {
+    S.error = !rows.length ? t(S.records[S.date] ? 'needHoursReqClear' : 'needHoursReq') : sumRows(rows) > 24 ? t('over24') : !S.comment.trim() ? t('needComment') : '';
+  }
+  if (!S.error && !S.reason.trim()) S.error = t('needReason');
+  if (S.error) { render(); return; }
+  sendToServer('submitRequest', [S.date, kind, rows, S.comment, S.reason], 'request');
+}
+function showMonth(ym) {
+  S.listMonth = typeof ym === 'string' ? ym : BOOT.today.slice(0, 7);
+  S.view = 'month';
+  S.submitted = false;
+  S.notice = '';
+  S.error = '';
+  render();
+}
+function showFeedback() {
+  S.view = 'feedback';
+  S.feedbackSent = false;
+  S.error = '';
+  S.notice = '';
+  render();
+  window.scrollTo(0, 0);
+}
+function sendFeedback() {
+  if (S.busy || !S.feedback.trim()) return;
+  S.busy = true;
+  S.error = '';
+  render();
+  call_('submitFeedback', [S.feedback], function () { S.busy = false; S.feedback = ''; S.feedbackSent = true; render(); }, failed);
+}
+function feedbackView() {
+  if (S.feedbackSent) {
+    return el('div', { class: 'body single' },
+      el('h2', { class: 'fb-title' }, t('feedbackTitle')),
+      el('p', { class: 'thanks', role: 'status' }, t('feedbackThanks')),
+      el('div', { class: 'fb-actions' },
+        el('button', { type: 'button', class: 'btn-outline', on: { click: showFeedback } }, t('feedbackAgain')),
+        el('button', { type: 'button', class: 'btn-fill', on: { click: showMonth } }, t('viewMonth'))));
+  }
+  return el('div', { class: 'body single' },
+    el('h2', { class: 'fb-title' }, t('feedbackTitle')),
+    el('p', { class: 'hint' }, t('feedbackHint')),
+    el('label', { for: 'feedback-text', class: 'sr' }, t('feedbackTitle')),
+    el('textarea', { id: 'feedback-text', class: 'feedback-text', maxlength: '1000', placeholder: t('feedbackPlaceholder'), value: S.feedback,
+      on: { input: function (e) {
+        S.feedback = e.target.value;
+        document.getElementById('feedback-send').disabled = S.busy || !S.feedback.trim();
+      } } }),
+    S.error ? el('p', { class: 'error', role: 'alert' }, S.error) : null,
+    el('div', { class: 'fb-actions' },
+      el('button', { type: 'button', id: 'feedback-send', class: 'send', disabled: S.busy || !S.feedback.trim(), on: { click: sendFeedback } },
+        S.busy ? t('sending') : t('feedbackSend'))));
+}
+function deleteDay(ymd) {
+  if (S.busy) return;
+  S.busy = true;
+  S.error = '';
+  S.notice = '';
+  render();
+  call_('deleteReport', [ymd], function (res) {
+    S.busy = false;
+    applyData(res.data);
+    load(ymd);
+    S.notice = t('deleted', { date: dayLabel(ymd) });
+    render();
+  }, function (err) { S.confirmDel = false; failed(err); });
+}
+function withdrawDay(ymd) {
+  if (S.busy) return;
+  S.busy = true;
+  S.error = '';
+  S.notice = '';
+  render();
+  call_('withdrawRequest', [ymd], function (data) {
+    S.busy = false;
+    applyData(data);
+    load(ymd);
+    S.notice = t('withdrawn', { date: dayLabel(ymd) });
+    render();
+  }, failed);
+}
+function render() {
+  const app = document.getElementById('app');
+  app.textContent = '';
+  add(app, [header(), S.view === 'month' ? monthView() : S.view === 'feedback' ? feedbackView() : S.submitted ? doneView() : formView()]);
+  ['comment', 'reason'].forEach(function (id) {
+    const box = document.getElementById(id);
+    if (box) fitComment(box);
+  });
+}
+function fitComment(box) {
+  box.style.height = 'auto';
+  if (box.scrollHeight > 0) box.style.height = box.scrollHeight + 2 + 'px';
+  else box.style.height = '';
+}
+function header() {
+  const link = S.view !== 'form'
+    ? el('button', { type: 'button', id: 'back-to-form', class: 'hd-link', on: { click: function () { load(S.date); } } }, t('back'))
+    : el('button', { type: 'button', id: 'to-month', class: 'hd-link', on: { click: function () { showMonth(); window.scrollTo(0, 0); } } }, t('toMonth'));
+  return el('header', { class: 'hd' }, el('span', null, el('b', null, BOOT.name), LANG === 'ja' ? ' さん' : ''), link);
+}
+function dayCell(ymd) {
+  const st = statusOf(ymd);
+  const w = weekday(ymd);
+  const cls = 'day-cell ' + st + (ymd === S.date ? ' selected' : '') + (w === 0 ? ' sun-d' : w === 6 ? ' sat-d' : '') +
+    (reqState(ymd) === 'pending' ? ' req' : '');
+  return el('button', {
+    type: 'button', class: cls, 'data-ymd': ymd,
+    'aria-label': dayLabel(ymd), 'aria-pressed': String(ymd === S.date),
+    disabled: st === 'future' || st === 'other',
+    on: { click: function () { load(ymd); } }
+  }, el('span', { class: 'num' }, String(parts(ymd)[2])), el('span', { class: 'mk' }, markOf(ymd, st)));
+}
+function wdClass(w) { return w === 0 ? 'sun' : w === 6 ? 'sat' : ''; }
+function strip() {
+  const days = [];
+  for (let i = 6; i >= 0; i--) days.push(shift(S.weekEnd, -i));
+  return el('div', { class: 'card strip', role: 'group', 'aria-label': dayLabel(days[0]) + ' – ' + dayLabel(days[6]) },
+    el('button', { type: 'button', id: 'prev-week', class: 'arrow', 'aria-label': t('prevWeek'), disabled: days[0] <= S.minDate,
+      on: { click: function () { S.weekEnd = shift(S.weekEnd, -7); render(); } } }, '◀'),
+    el('div', { class: 'strip-days' },
+      el('div', { class: 'strip-wd', 'aria-hidden': 'true' }, days.map(function (d) {
+        const w = weekday(d);
+        return el('span', { class: wdClass(w) }, TEXT[LANG].weekdays[w]);
+      })),
+      el('div', { class: 'strip-grid' }, days.map(dayCell))),
+    el('button', { type: 'button', id: 'next-week', class: 'arrow', 'aria-label': t('nextWeek'), disabled: S.weekEnd >= BOOT.today,
+      on: { click: function () { const n = shift(S.weekEnd, 7); S.weekEnd = n > BOOT.today ? BOOT.today : n; render(); } } }, '▶'));
+}
+function monthCalendar() {
+  const ym = S.calMonth;
+  const days = monthDays(ym);
+  const grid = el('div', { class: 'mcal-grid' });
+  for (let i = 0; i < weekday(days[0]); i++) add(grid, el('span', { 'aria-hidden': 'true' }));
+  days.forEach(function (d) { add(grid, dayCell(d)); });
+  function legend(cls, label) { return el('span', null, el('i', { class: cls }), label); }
+  function go(n) { S.calMonth = shiftMonth(ym, n); render(); }
+  const L = TEXT[LANG].legend;
+  return el('div', { class: 'card mcal' },
+    el('div', { class: 'mcal-title' },
+      el('button', { type: 'button', id: 'cal-prev', class: 'arrow', 'aria-label': t('prevMonth'), disabled: ym <= S.minDate.slice(0, 7),
+        on: { click: function () { go(-1); } } }, '◀'),
+      el('span', null, t('monthTitle', monthParams(ym))),
+      el('button', { type: 'button', id: 'cal-next', class: 'arrow', 'aria-label': t('nextMonth'), disabled: ym >= BOOT.today.slice(0, 7),
+        on: { click: function () { go(1); } } }, '▶')),
+    el('div', { class: 'mcal-wd', 'aria-hidden': 'true' }, TEXT[LANG].weekdays.map(function (w, i) { return el('span', { class: wdClass(i) }, w); })),
+    grid,
+    el('div', { class: 'legend', 'aria-hidden': 'true' }, legend('lg-sent', L[0]), el('span', null, t('legendNote'))));
+}
+function taskRow(task) {
+  const h = S.hours[task] || 0;
+  return el('div', { class: 'task-row', 'data-task': task },
+    el('button', { type: 'button', class: 'step minus', 'aria-label': t('minus', { task: task }), disabled: h <= 0,
+      on: { click: function () { step(task, -1); } } }, '−'),
+    el('div', { class: 'mid' },
+      el('span', { class: 'name' }, task),
+      el('span', { class: 'h' + (h ? '' : ' zero'), 'aria-live': 'polite' }, fmt(h))),
+    el('button', { type: 'button', class: 'step plus', 'aria-label': t('plus', { task: task }), disabled: h >= 12,
+      on: { click: function () { step(task, 1); } } }, '＋'));
+}
+function requestNote() {
+  const q = S.requests[S.date];
+  const state = reqState(S.date);
+  const lines = state === 'pending' ? [t(q.kind === 'clear' ? 'pendingClearNote' : 'pendingNote', { at: q.at })]
+    : [t('closedNote', { days: dayCount(S.backDays) })];
+  if (state === 'rejected') lines.push(t('rejectedNote', { at: q.at }) + (q.rejectReason ? ' ' + t('rejectedReason', { reason: q.rejectReason }) : ''));
+  return el('div', { class: 'req-note', role: 'note' }, lines.map(function (s) { return el('p', null, s); }));
+}
+function formView() {
+  const st = statusOf(S.date);
+  const P = TEXT[LANG].pills;
+  const tasks = rowTasks();
+  const total = dayTotal();
+  const closed = isClosed(S.date);
+  const clearReq = closed && S.clearMode;
+  function setClearMode(on) { S.clearMode = on; S.error = ''; render(); }
+  const ym = S.date.slice(0, 7);
+  const monthOthers = Object.keys(S.records).filter(function (d) { return d !== S.date && d.slice(0, 7) === ym; })
+    .reduce(function (a, d) { return a + sumRows(S.records[d].rows); }, 0);
+  const monthLabel = ym === BOOT.today.slice(0, 7) ? t('thisMonth') : t('monthOf', monthParams(ym));
+  const sendLabel = S.busy ? t('sending')
+    : clearReq ? t('reqClear')
+    : closed ? (S.records[S.date] ? t('reqFix') : t('reqNew'))
+    : (S.records[S.date] ? t('resend') : t('send'));
+  return el('div', { class: 'body' },
+    el('div', { class: 'side' }, monthCalendar()),
+    el('div', { class: 'entry' },
+      strip(),
+      el('div', { class: 'date-row' },
+        el('span', null, el('b', null, t('workOf', { date: dayLabel(S.date) })), P[st] ? el('span', { class: 'pill ' + st }, P[st]) : null),
+        tasks.length && !clearReq ? el('button', { type: 'button', id: 'copy-prev', class: 'linkish', on: { click: copyPrev } }, t('copyPrev')) : null),
+      closed ? requestNote() : null,
+      S.notice ? el('p', { class: 'notice', role: 'status' }, S.notice) : null,
+      clearReq
+        ? el('div', { class: 'card clear-card' },
+            el('p', null, t('clearReqText')),
+            el('button', { type: 'button', id: 'back-to-report', class: 'linkish', disabled: S.busy,
+              on: { click: function () { setClearMode(false); } } }, t('backToReport')))
+        : [
+            tasks.length
+              ? el('div', { class: 'card rows' }, tasks.map(taskRow))
+              : el('p', { class: 'no-tasks', role: 'alert' }, t('noTasks')),
+            el('label', { for: 'comment', class: 'sr' }, t('comment')),
+            el('textarea', { id: 'comment', class: 'comment', rows: '1', maxlength: '200', placeholder: t('comment'), value: S.comment,
+              on: { input: function (e) { S.comment = e.target.value; fitComment(e.target); } } })
+          ],
+      !closed && S.records[S.date]
+        ? (S.confirmDel
+            ? el('div', { class: 'del-confirm', role: 'group', 'aria-label': t('deleteReport') },
+                el('span', null, t('deleteAsk')),
+                el('button', { type: 'button', id: 'delete-yes', class: 'del-yes', disabled: S.busy, on: { click: function () { deleteDay(S.date); } } }, t('deleteYes')),
+                el('button', { type: 'button', id: 'delete-no', class: 'linkish', disabled: S.busy,
+                  on: { click: function () { S.confirmDel = false; render(); } } }, t('deleteNo')))
+            : el('div', { class: 'req-row' },
+                el('button', { type: 'button', id: 'delete-report', class: 'linkish danger', disabled: S.busy,
+                  on: { click: function () { S.confirmDel = true; S.error = ''; render(); } } }, t('deleteReport'))))
+        : null,
+      closed ? el('label', { for: 'reason', class: 'sr' }, t('reason')) : null,
+      closed ? el('textarea', { id: 'reason', class: 'comment', rows: '1', maxlength: '200', placeholder: t('reason'), value: S.reason,
+        on: { input: function (e) { S.reason = e.target.value; fitComment(e.target); } } }) : null,
+      closed && (reqState(S.date) === 'pending' || (!clearReq && S.records[S.date]))
+        ? el('div', { class: 'req-row' },
+            reqState(S.date) === 'pending'
+              ? el('button', { type: 'button', id: 'withdraw-request', class: 'linkish', disabled: S.busy,
+                  on: { click: function () { withdrawDay(S.date); } } }, t('withdraw'))
+              : null,
+            !clearReq && S.records[S.date]
+              ? el('button', { type: 'button', id: 'request-clear', class: 'linkish', disabled: S.busy,
+                  on: { click: function () { setClearMode(true); } } }, t('toClear'))
+              : null)
+        : null,
+      el('div', { class: 'ft' },
+        total > BOOT.overHours && !clearReq ? el('p', { class: 'warn' }, t('overWarn', { n: BOOT.overHours })) : null,
+        S.error ? el('p', { class: 'error', role: 'alert' }, S.error) : null,
+        el('div', { class: 'ft-row' },
+          clearReq ? null : el('div', { class: 'totals' },
+            el('span', null, t('thisDay') + ' ', el('b', { id: 'day-total', class: 'big' }, fmt(total))),
+            el('span', null, monthLabel + ' ', el('b', { id: 'month-total' }, fmt(monthOthers + total)))),
+          el('button', { type: 'button', id: 'send', class: 'send', disabled: S.busy || (!tasks.length && !clearReq), on: { click: submit } }, sendLabel)))));
+}
+function doneView() {
+  const isReq = S.sentKind === 'request';
+  const q = isReq ? S.requests[S.date] : null;
+  const clear = !!(q && q.kind === 'clear');
+  const rec = (isReq ? q : S.records[S.date]) || { rows: [], comment: '' };
+  const ym = S.date.slice(0, 7);
+  return el('div', { class: 'body single' },
+    el('div', { class: 'done-view' },
+      el('div', { class: 'stamp', 'aria-hidden': 'true' }, t(isReq ? 'reqStamp' : 'stamp')),
+      el('div', null,
+        el('p', { class: 'done-title', role: 'status' }, t(isReq ? 'reqSentTitle' : 'sentTitle', { date: dayLabel(S.date) })),
+        el('p', { class: 'hint' }, isReq ? t('reqSentHint') : t('total', { h: fmt(sumRows(rec.rows)) }))),
+      el('div', { class: 'card list' },
+        clear
+          ? el('div', { class: 'list-item' }, el('span', null, t('clearItem')))
+          : rec.rows.map(function (r) {
+              return el('div', { class: 'list-item' }, el('span', null, r.task), el('span', { class: 'num-strong' }, fmt(r.hours)));
+            }),
+        !clear && rec.comment ? el('div', { class: 'list-item' }, el('span', { class: 'hint comment-text' }, rec.comment)) : null,
+        q ? el('div', { class: 'list-item' }, el('span', { class: 'hint comment-text' }, t('reasonLabel', { reason: q.reason }))) : null),
+      el('div', { class: 'btn-row' },
+        el('button', { type: 'button', class: 'btn-outline', on: { click: function () { load(S.date); } } }, t('edit')),
+        el('button', { type: 'button', class: 'btn-fill', on: { click: function () { showMonth(ym); } } },
+          ym === BOOT.today.slice(0, 7) ? t('viewMonth') : t('viewMonthOf', monthParams(ym)))),
+      el('button', { type: 'button', id: 'to-feedback', class: 'feedback-link', on: { click: showFeedback } }, t('feedbackLink'))));
+}
+function monthView() {
+  const ym = S.listMonth;
+  let sum = 0, reported = 0;
+  const P = TEXT[LANG].pills;
+  const RP = TEXT[LANG].reqPills;
+  const items = [];
+  monthDays(ym).forEach(function (ymd) {
+    const st = statusOf(ymd);
+    if (st === 'future') return;
+    const rec = S.records[ymd];
+    const closed = isClosed(ymd);
+    const rs = reqState(ymd);
+    if (rec) { sum += sumRows(rec.rows); reported++; }
+    const label = closed ? (rec ? t('actReqFix') : t('actReq')) : rec ? t('actEdit') : t('actWrite');
+    const w = weekday(ymd);
+    items.push(el('div', { class: 'day ' + st, 'data-ymd': ymd },
+      el('div', { class: 'd-date ' + wdClass(w) }, closed ? lockMark() : null, dayLabel(ymd)),
+      el('div', { class: 'd-status' },
+        P[st] ? el('span', { class: 'pill ' + st }, P[st]) : st === 'today' ? el('span', { class: 'note', title: t('notYet') }, TEXT[LANG].marks.today) : null,
+        rs ? el('span', { class: 'pill ' + (rs === 'pending' ? 'req' : rs) },
+          rs === 'pending' && S.requests[ymd].kind === 'clear' ? t('reqPillClear') : RP[rs]) : null),
+      el('div', { class: 'd-hours' }, rec ? fmt(sumRows(rec.rows)) : ''),
+      el('div', { class: 'd-tasks' }, rec ? rec.rows.map(function (r) { return r.task; }).join(t('listSep')) : null),
+      el('div', { class: 'd-comment' }, rec && rec.comment ? rec.comment : null),
+      el('div', { class: 'd-actions' },
+        el('button', { type: 'button', class: 'day-btn', disabled: S.busy,
+          'aria-label': dayLabel(ymd) + ' ' + label, on: { click: function () { load(ymd); window.scrollTo(0, 0); } } }, label))));
+  });
+  const H = TEXT[LANG].head;
+  function go(n) { S.listMonth = shiftMonth(ym, n); S.notice = ''; S.error = ''; render(); }
+  return el('div', { class: 'body month' },
+    el('p', { class: 'lock' }, t('lock', { name: BOOT.name })),
+    S.error ? el('p', { class: 'error', role: 'alert' }, S.error) : null,
+    S.notice ? el('p', { class: 'notice', role: 'status' }, S.notice) : null,
+    el('div', { class: 'month-nav' },
+      el('button', { type: 'button', id: 'month-prev', class: 'linkish', disabled: ym <= S.minDate.slice(0, 7),
+        on: { click: function () { go(-1); } } }, '‹ ' + t('prevMonth')),
+      el('b', null, t('monthTitle', monthParams(ym))),
+      el('button', { type: 'button', id: 'month-next', class: 'linkish', disabled: ym >= BOOT.today.slice(0, 7),
+        on: { click: function () { go(1); } } }, t('nextMonth') + ' ›')),
+    el('section', { class: 'card summary' },
+      el('div', { class: 'summary-top' }, el('b', null, t('monthTotal', monthParams(ym))), el('span', { class: 'big' }, fmt(sum))),
+      el('div', { class: 'stats' },
+        el('div', { class: 'stat' }, el('span', { class: 'k' }, t('reported')), el('span', { class: 'v' }, dayCount(reported))))),
+    el('p', { class: 'month-note' }, t('monthNote', { days: dayCount(S.backDays) })),
+    el('div', { class: 'card month-list' },
+      el('div', { class: 'day-head', 'aria-hidden': 'true' }, H.map(function (h) { return el('span', null, h); }), el('span')),
+      items),
+    el('label', { class: 'card remind' },
+      el('input', { type: 'checkbox', id: 'remind', checked: S.remind, disabled: S.busy, on: { change: toggleRemind } }),
+      el('span', null, t('remindLabel'))),
+    el('p', { class: 'remind-note' }, t('remindNote')),
+    S.confirmReissue
+      ? el('div', { class: 'del-confirm reissue-confirm', role: 'group', 'aria-label': t('reissueLink') },
+          el('span', null, t('reissueAsk')),
+          el('button', { type: 'button', id: 'reissue-yes', class: 'del-yes', disabled: S.busy, on: { click: reissueMyUrl } }, t('reissueYes')),
+          el('button', { type: 'button', id: 'reissue-no', class: 'linkish', disabled: S.busy,
+            on: { click: function () { S.confirmReissue = false; render(); } } }, t('deleteNo')))
+      : el('button', { type: 'button', id: 'reissue', class: 'linkish danger', disabled: S.busy,
+          on: { click: function () { S.confirmReissue = true; S.error = ''; S.notice = ''; render(); } } }, t('reissueLink')),
+    el('button', { type: 'button', id: 'to-feedback', class: 'feedback-link', on: { click: showFeedback } }, t('feedbackLink')));
+}
+function reissueMyUrl() {
+  if (S.busy) return;
+  S.busy = true;
+  S.error = '';
+  render();
+  call_('reissueMyUrl', [], function () {
+    const app = document.getElementById('app');
+    app.textContent = '';
+    add(app, el('div', { class: 'gate', role: 'status' }, el('p', null, t('reissued'))));
+  }, function (err) { S.confirmReissue = false; failed(err); });
+}
+function toggleRemind(e) {
+  if (S.busy) return;
+  const on = !!e.target.checked;
+  S.busy = true;
+  S.error = '';
+  S.notice = '';
+  render();
+  call_('setReminder', [on], function (res) {
+    S.busy = false;
+    S.remind = res.remind;
+    S.notice = t(res.remind ? 'remindOn' : 'remindOff');
+    render();
+  }, failed);
+}
+function gateView(ja, en) {
+  const app = document.getElementById('app');
+  app.textContent = '';
+  add(app, el('div', { class: 'gate', role: 'status' }, el('p', null, ja), el('p', { class: 'en', lang: 'en' }, en)));
+}
+function start() {
+  if (window.top !== window.self) return;
+  if (!KEY) {
+    gateView(TEXT.ja.badAddress, TEXT.en.badAddress);
+    return;
+  }
+  gateView(TEXT.ja.loading, TEXT.en.loading);
+  call_('boot', [], function (data) {
+    BOOT = data;
+    LANG = BOOT.lang === 'en' ? 'en' : 'ja';
+    document.documentElement.lang = LANG;
+    document.title = t('title');
+    S = initState();
+    load(BOOT.today);
+  }, function (err) {
+    if (err.code === 'KEY') gateView(TEXT.ja.badAddress, TEXT.en.badAddress);
+    else if (err.code === 'NET') gateView(TEXT.ja.loadFailed, TEXT.en.loadFailed);
+    else if (err.code === 'BAD' || !err.message) gateView(TEXT.ja.serverError, TEXT.en.serverError);
+    else gateView(err.message, '');
+  });
+}
+start();
 </script>
 </body>
 </html>

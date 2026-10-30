@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-mADoJ69ZFUbbOEkB3kZlaS2NFOhxkQfYCZJwYs0QzoQ='; style-src 'sha256-/c8SMis7TBENcFAKtHvQEvrV0na62v+AInQsiDba4x4='; connect-src https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>接続の確認</title>
+<style>body{font-family:sans-serif;margin:24px;line-height:1.7;color:#1B2433}#r{font-weight:bold}</style>
+</head>
+<body>
+<h1>接続の確認</h1>
+<p id="r">確認しています…</p>
+<script>
+(function () {
+  var r = document.getElementById('r');
+  if (window.top !== window.self) { r.textContent = ''; return; }
+  fetch('https://script.google.com/macros/s/AKfycbxFATl0jolr2Zn7HLqEV-F2Igt6a_QANu9hLqgHYcm-0g1H2EE6zd96xZ9jY4dbhpU1-w/exec', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ fn: 'ping' }),
+    credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer'
+  })
+    .then(function (res) { return res.json(); })
+    .then(function (j) { r.textContent = j && j.ok && j.data === 'pong' ? 'OK：つながりました。' : 'NG：返事がおかしいです。'; })
+    .catch(function (e) { r.textContent = 'NG：つながりませんでした（' + e + '）'; });
+})();
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-zfNVOLnbNqiHBCZjOWRF90qqPHHTFki7LKZlIP7ya0I='; style-src 'sha256-yQ7Lea6MoMcA7Ne6iuANGnn1/ENUx4hi/hisQA3OLns='; connect-src https://script.google.com/macros/s/AKfycbxFATl0jolr2Zn7HLqEV-F2Igt6a_QANu9hLqgHYcm-0g1H2EE6zd96xZ9jY4dbhpU1-w/exec https://script.googleusercontent.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-pKHKvpRx5Fm8OsYadEgNmMfFhdxgQCox84fnTZIKMAk='; style-src 'sha256-b+uqI9Y6SlWAW7lYBWspDCgaC1UtrMQwb9xKuHMyONw='; connect-src https://script.google.com/macros/s/AKfycbxFATl0jolr2Zn7HLqEV-F2Igt6a_QANu9hLqgHYcm-0g1H2EE6zd96xZ9jY4dbhpU1-w/exec https://script.googleusercontent.com; img-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -41,6 +41,7 @@
   .day-cell { height: 42px; padding: 0; border-radius: 8px; border: 2px solid transparent; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; }
   .day-cell .num { font-size: 15px; font-weight: 700; }
   .day-cell .mk { height: 12px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .day-cell .mk.long { font-size: 9px; letter-spacing: -0.3px; }
   .day-cell.done { background: var(--accent-soft); color: var(--accent-ink); }
   .day-cell.today .mk, .day-cell.req .mk { color: var(--accent); }
   .day-cell.off.sun-d { color: var(--sun); } .day-cell.off.sat-d { color: var(--sat); }
@@ -225,8 +226,8 @@ const TEXT = {
     reissueAsk: '作り直すと、今のアドレスは使えなくなります。新しいアドレスは Slack の DM に届きます。',
     reissueYes: '作り直す',
     reissued: '新しいアドレスを Slack の DM に送りました。このページ（前のアドレス）は使えなくなりました。DM のアドレスをブックマークし直してください。',
-    minus: '{task}を1時間減らす',
-    plus: '{task}を1時間増やす',
+    minus: '{task}を30分減らす',
+    plus: '{task}を30分増やす',
     prevWeek: '前の7日',
     nextWeek: '次の7日',
     marks: { done: '済', today: '今日', req: '申請中' },
@@ -322,8 +323,8 @@ const TEXT = {
     reissueAsk: 'If you renew it, this address will stop working. The new address will be sent to you by Slack DM.',
     reissueYes: 'Renew',
     reissued: 'We sent the new address to you by Slack DM. This page (the old address) no longer works. Please bookmark the address in the DM.',
-    minus: 'Remove 1 hour from {task}',
-    plus: 'Add 1 hour to {task}',
+    minus: 'Remove 30 minutes from {task}',
+    plus: 'Add 30 minutes to {task}',
     prevWeek: 'Previous 7 days',
     nextWeek: 'Next 7 days',
     marks: { done: '✓', today: 'Today', req: 'Req' },
@@ -383,6 +384,7 @@ const TEXT = {
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTHS_EN_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const WD_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const STEP_HOURS = 0.5;
 function t(key, params) {
   let s = TEXT[LANG][key];
   Object.keys(params || {}).forEach(function (k) { s = s.split('{' + k + '}').join(String(params[k])); });
@@ -500,8 +502,12 @@ function statusOf(ymd) {
 function markOf(ymd, st) {
   const M = TEXT[LANG].marks;
   if (reqState(ymd) === 'pending') return M.req;
-  if (st === 'done') return M.done + ' ' + sumRows(S.records[ymd].rows) + 'h';
+  if (st === 'done') return M.done + sumRows(S.records[ymd].rows) + 'h';
   return M[st] || '';
+}
+function markEl(ymd, st) {
+  const text = markOf(ymd, st);
+  return el('span', { class: text.length >= 5 ? 'mk long' : 'mk' }, text);
 }
 function rowTasks() {
   const list = S.tasks.slice();
@@ -548,7 +554,7 @@ function copyPrev() {
   render();
 }
 function step(task, diff) {
-  const v = (S.hours[task] || 0) + diff;
+  const v = (S.hours[task] || 0) + diff * STEP_HOURS;
   S.hours[task] = Math.max(0, Math.min(12, v));
   S.error = '';
   render();
@@ -727,7 +733,7 @@ function dayCell(ymd) {
     'aria-label': dayLabel(ymd), 'aria-pressed': String(ymd === S.date),
     disabled: st === 'future' || st === 'other',
     on: { click: function () { load(ymd); } }
-  }, el('span', { class: 'num' }, String(parts(ymd)[2])), el('span', { class: 'mk' }, markOf(ymd, st)));
+  }, el('span', { class: 'num' }, String(parts(ymd)[2])), markEl(ymd, st));
 }
 function wdClass(w) { return w === 0 ? 'sun' : w === 6 ? 'sat' : ''; }
 function strip() {

@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-pKHKvpRx5Fm8OsYadEgNmMfFhdxgQCox84fnTZIKMAk='; style-src 'sha256-b+uqI9Y6SlWAW7lYBWspDCgaC1UtrMQwb9xKuHMyONw='; connect-src https://script.google.com/macros/s/AKfycbxFATl0jolr2Zn7HLqEV-F2Igt6a_QANu9hLqgHYcm-0g1H2EE6zd96xZ9jY4dbhpU1-w/exec https://script.googleusercontent.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-KQXw1qPo1JYy7qTrYN0xEyM2ezFGY0g1mw7lsb2QLeM='; style-src 'sha256-891V6HlpZkVvz9/wOIeczYG5oLBOItlsOD+NChqbwlo='; connect-src https://script.google.com/macros/s/AKfycbxFATl0jolr2Zn7HLqEV-F2Igt6a_QANu9hLqgHYcm-0g1H2EE6zd96xZ9jY4dbhpU1-w/exec https://script.googleusercontent.com; img-src data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -76,16 +76,19 @@
   .del-yes { height: 30px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--warn-btn); color: #FFFFFF; font-size: 13px; font-weight: 700; }
   .notice { margin: 0; padding: 6px 10px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink); font-size: 12px; line-height: 1.4; }
   .no-tasks { margin: 0; padding: 12px; border-radius: 10px; background: var(--warn-soft); color: var(--warn); font-size: 14px; font-weight: 700; }
-  .task-row { height: 52px; padding: 4px 6px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line2); }
-  .task-row:last-child { border-bottom: 0; }
+  .task-item { border-bottom: 1px solid var(--line2); }
+  .task-item:last-child { border-bottom: 0; }
+  .task-row { height: 52px; padding: 4px 6px; display: flex; align-items: center; gap: 8px; }
+  .task-row .name { flex: 1; min-width: 0; padding: 0 2px; font-weight: 700; line-height: 1.25; overflow: hidden; overflow-wrap: anywhere;
+                    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
   .step { width: 44px; height: 44px; flex: none; border-radius: 9px; border: 1px solid var(--field); background: var(--surface); color: var(--ink); font-size: 22px; font-weight: 700; line-height: 1; }
   .step.plus { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
   .step:disabled { opacity: 0.35; }
-  .mid { flex: 1; min-width: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding: 0 2px; }
-  .mid .name { min-width: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .mid .h { flex: none; font-size: 17px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
-  .mid .h.zero { color: var(--faint); font-weight: 400; font-size: 14px; }
+  .task-row .h { flex: none; min-width: 58px; text-align: center; font-size: 17px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .task-row .h.zero { color: var(--faint); font-weight: 400; font-size: 14px; }
   .comment { display: block; width: 100%; height: 44px; min-height: 44px; max-height: 88px; padding: 10px; border: 1px solid var(--field); border-radius: 8px; background: var(--surface); font-size: 16px; line-height: 1.4; resize: none; overflow-y: auto; }
+  .comment.note { width: calc(100% - 12px); height: 40px; min-height: 40px; margin: 0 6px 8px; padding: 8px 10px; }
+  .comment.note.missing { border-color: var(--warn-btn); background: var(--warn-soft); }
   .ft { position: sticky; bottom: 0; margin: auto -14px 0; padding: 8px 14px 10px; background: var(--surface); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
   .ft-row { display: flex; align-items: center; gap: 12px; }
   .totals { flex: none; display: flex; flex-direction: column; line-height: 1.25; font-size: 12px; color: var(--muted); }
@@ -103,6 +106,7 @@
   .list-item { padding: 10px 14px; border-bottom: 1px solid var(--line2); display: flex; justify-content: space-between; gap: 12px; }
   .list-item:last-child { border-bottom: 0; }
   .num-strong { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .li-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .comment-text { white-space: pre-wrap; overflow-wrap: anywhere; }
   .btn-row { display: flex; gap: 8px; width: 100%; }
   .btn-outline, .btn-fill { flex: 1; height: 46px; border-radius: 8px; font-size: 14px; font-weight: 700; }
@@ -191,10 +195,12 @@ const TEXT = {
     back: '‹ 入力に戻る',
     workOf: '{date}の作業',
     copyPrev: '前回と同じ ›',
-    copied: '{date}の内容を入れました。違うところは直して送信してください。',
+    copied: '{date}の時間を入れました。何をしたかを書いて、送信してください。',
     noPrev: '前回の報告がありません。',
-    comment: '一言コメント（必須）',
-    needComment: '一言コメントを書いてください。',
+    notePh: '何をしたか（例：〇〇の実装）',
+    noteAria: '{task}で何をしたか',
+    needNote: '「{task}」で何をしたかを書いてください。',
+    noteJoin: '：', noteSep: ' ／ ',
     thisDay: 'この日',
     thisMonth: '今月',
     monthOf: '{m}月',
@@ -256,7 +262,7 @@ const TEXT = {
     feedbackSend: '送信する',
     feedbackThanks: '送信しました。ありがとうございました。',
     feedbackAgain: '続けて送る',
-    head: ['日付', '状態', '時間', '作業内容', '一言コメント'],
+    head: ['日付', '状態', '時間', '作業内容', '作業の詳細'],
     prevMonth: '前の月', nextMonth: '次の月',
     closedMark: '締め切り後',
     closedNote: 'この日は締め切り（今日と前の{days}間）を過ぎています。理由を書いて申請すると、管理者の承認後に反映されます。',
@@ -288,10 +294,12 @@ const TEXT = {
     back: '‹ Back',
     workOf: 'Work on {date}',
     copyPrev: 'Same as last time ›',
-    copied: 'Filled in from {date}. Change anything that differs, then send.',
+    copied: 'Filled in the hours from {date}. Write what you did, then send.',
     noPrev: 'No previous report found.',
-    comment: 'Short comment (required)',
-    needComment: 'Please write a short comment.',
+    notePh: 'What did you do? (e.g. implementing X)',
+    noteAria: 'What you did for {task}',
+    needNote: 'Please write what you did for "{task}".',
+    noteJoin: ': ', noteSep: ' / ',
     thisDay: 'This day',
     thisMonth: 'This month',
     monthOf: '{mon}',
@@ -354,7 +362,7 @@ const TEXT = {
     feedbackSend: 'Send',
     feedbackThanks: 'Sent. Thank you for your feedback!',
     feedbackAgain: 'Send another',
-    head: ['Date', 'Status', 'Hours', 'Work', 'Comment'],
+    head: ['Date', 'Status', 'Hours', 'Work', 'Details'],
     prevMonth: 'Previous month', nextMonth: 'Next month',
     closedMark: 'Past deadline',
     closedNote: 'Past the deadline (today and the previous {days}). Send a request with a reason; it is applied once a manager approves it.',
@@ -396,7 +404,8 @@ function initState() {
   date: BOOT.today,
   weekEnd: BOOT.today,
   hours: {},
-  comment: '',
+  notes: {},
+  noteMissing: false,
   reason: '',
   clearMode: false,
   confirmDel: false,
@@ -528,8 +537,12 @@ function load(ymd) {
     S.weekEnd = end > BOOT.today ? BOOT.today : end;
   }
   S.hours = {};
-  if (rec) rec.rows.forEach(function (r) { S.hours[r.task] = Number(r.hours) || 0; });
-  S.comment = rec ? rec.comment : '';
+  S.notes = {};
+  if (rec) rec.rows.forEach(function (r) {
+    S.hours[r.task] = Number(r.hours) || 0;
+    S.notes[r.task] = r.note == null ? '' : String(r.note);
+  });
+  S.noteMissing = false;
   S.reason = q ? q.reason : '';
   S.clearMode = !!(q && q.kind === 'clear' && S.records[ymd]);
   S.confirmDel = false;
@@ -562,7 +575,12 @@ function step(task, diff) {
 function enteredRows() {
   return rowTasks()
     .filter(function (task) { return (S.hours[task] || 0) > 0; })
-    .map(function (task) { return { task: task, hours: S.hours[task] }; });
+    .map(function (task) { return { task: task, hours: S.hours[task], note: String(S.notes[task] || '').trim() }; });
+}
+function missingNote(rows) {
+  const r = rows.find(function (x) { return !x.note; });
+  S.noteMissing = !!r;
+  return r ? t('needNote', { task: r.task }) : '';
 }
 function failed(err) {
   S.busy = false;
@@ -614,20 +632,20 @@ function submit() {
   if (S.busy) return;
   if (isClosed(S.date)) { sendRequest(S.clearMode ? 'clear' : 'report'); return; }
   const rows = enteredRows();
-  S.error = !rows.length ? t(S.records[S.date] ? 'needHoursDel' : 'needHours') : sumRows(rows) > 24 ? t('over24') : !S.comment.trim() ? t('needComment') : '';
+  S.error = !rows.length ? t(S.records[S.date] ? 'needHoursDel' : 'needHours') : sumRows(rows) > 24 ? t('over24') : missingNote(rows);
   if (S.error) { render(); return; }
-  sendToServer('submitReport', [S.date, rows, S.comment], 'report');
+  sendToServer('submitReport', [S.date, rows], 'report');
 }
 function sendRequest(kind) {
   if (S.busy) return;
   const rows = kind === 'clear' ? [] : enteredRows();
   S.error = '';
   if (kind !== 'clear') {
-    S.error = !rows.length ? t(S.records[S.date] ? 'needHoursReqClear' : 'needHoursReq') : sumRows(rows) > 24 ? t('over24') : !S.comment.trim() ? t('needComment') : '';
+    S.error = !rows.length ? t(S.records[S.date] ? 'needHoursReqClear' : 'needHoursReq') : sumRows(rows) > 24 ? t('over24') : missingNote(rows);
   }
   if (!S.error && !S.reason.trim()) S.error = t('needReason');
   if (S.error) { render(); return; }
-  sendToServer('submitRequest', [S.date, kind, rows, S.comment, S.reason], 'request');
+  sendToServer('submitRequest', [S.date, kind, rows, '', S.reason], 'request');
 }
 function showMonth(ym) {
   S.listMonth = typeof ym === 'string' ? ym : BOOT.today.slice(0, 7);
@@ -707,10 +725,9 @@ function render() {
   const app = document.getElementById('app');
   app.textContent = '';
   add(app, [header(), S.view === 'month' ? monthView() : S.view === 'feedback' ? feedbackView() : S.submitted ? doneView() : formView()]);
-  ['comment', 'reason'].forEach(function (id) {
-    const box = document.getElementById(id);
-    if (box) fitComment(box);
-  });
+  const reason = document.getElementById('reason');
+  if (reason) fitComment(reason);
+  Array.prototype.forEach.call(document.querySelectorAll('textarea.note'), fitComment);
 }
 function fitComment(box) {
   box.style.height = 'auto';
@@ -773,14 +790,25 @@ function monthCalendar() {
 }
 function taskRow(task) {
   const h = S.hours[task] || 0;
-  return el('div', { class: 'task-row', 'data-task': task },
-    el('button', { type: 'button', class: 'step minus', 'aria-label': t('minus', { task: task }), disabled: h <= 0,
-      on: { click: function () { step(task, -1); } } }, '−'),
-    el('div', { class: 'mid' },
+  const note = String(S.notes[task] || '');
+  const missing = S.noteMissing && !note.trim();
+  return el('div', { class: 'task-item' },
+    el('div', { class: 'task-row', 'data-task': task },
       el('span', { class: 'name' }, task),
-      el('span', { class: 'h' + (h ? '' : ' zero'), 'aria-live': 'polite' }, fmt(h))),
-    el('button', { type: 'button', class: 'step plus', 'aria-label': t('plus', { task: task }), disabled: h >= 12,
-      on: { click: function () { step(task, 1); } } }, '＋'));
+      el('button', { type: 'button', class: 'step minus', 'aria-label': t('minus', { task: task }), disabled: h <= 0,
+        on: { click: function () { step(task, -1); } } }, '−'),
+      el('span', { class: 'h' + (h ? '' : ' zero'), 'aria-live': 'polite' }, fmt(h)),
+      el('button', { type: 'button', class: 'step plus', 'aria-label': t('plus', { task: task }), disabled: h >= 12,
+        on: { click: function () { step(task, 1); } } }, '＋')),
+    h > 0
+      ? el('textarea', { class: 'comment note' + (missing ? ' missing' : ''), 'data-task': task, rows: '1', maxlength: '200',
+          placeholder: t('notePh'), 'aria-label': t('noteAria', { task: task }), 'aria-invalid': missing ? 'true' : null, value: note,
+          on: { input: function (e) {
+            S.notes[task] = e.target.value;
+            if (e.target.value.trim()) { e.target.classList.remove('missing'); e.target.removeAttribute('aria-invalid'); }
+            fitComment(e.target);
+          } } })
+      : null);
 }
 function requestNote() {
   const q = S.requests[S.date];
@@ -820,14 +848,9 @@ function formView() {
             el('p', null, t('clearReqText')),
             el('button', { type: 'button', id: 'back-to-report', class: 'linkish', disabled: S.busy,
               on: { click: function () { setClearMode(false); } } }, t('backToReport')))
-        : [
-            tasks.length
-              ? el('div', { class: 'card rows' }, tasks.map(taskRow))
-              : el('p', { class: 'no-tasks', role: 'alert' }, t('noTasks')),
-            el('label', { for: 'comment', class: 'sr' }, t('comment')),
-            el('textarea', { id: 'comment', class: 'comment', rows: '1', maxlength: '200', placeholder: t('comment'), value: S.comment,
-              on: { input: function (e) { S.comment = e.target.value; fitComment(e.target); } } })
-          ],
+        : tasks.length
+          ? el('div', { class: 'card rows' }, tasks.map(taskRow))
+          : el('p', { class: 'no-tasks', role: 'alert' }, t('noTasks')),
       !closed && S.records[S.date]
         ? (S.confirmDel
             ? el('div', { class: 'del-confirm', role: 'group', 'aria-label': t('deleteReport') },
@@ -866,7 +889,7 @@ function doneView() {
   const isReq = S.sentKind === 'request';
   const q = isReq ? S.requests[S.date] : null;
   const clear = !!(q && q.kind === 'clear');
-  const rec = (isReq ? q : S.records[S.date]) || { rows: [], comment: '' };
+  const rec = (isReq ? q : S.records[S.date]) || { rows: [] };
   const ym = S.date.slice(0, 7);
   return el('div', { class: 'body single' },
     el('div', { class: 'done-view' },
@@ -878,15 +901,22 @@ function doneView() {
         clear
           ? el('div', { class: 'list-item' }, el('span', null, t('clearItem')))
           : rec.rows.map(function (r) {
-              return el('div', { class: 'list-item' }, el('span', null, r.task), el('span', { class: 'num-strong' }, fmt(r.hours)));
+              return el('div', { class: 'list-item' },
+                el('span', { class: 'li-main' }, el('span', null, r.task), r.note ? el('span', { class: 'hint comment-text' }, r.note) : null),
+                el('span', { class: 'num-strong' }, fmt(r.hours)));
             }),
-        !clear && rec.comment ? el('div', { class: 'list-item' }, el('span', { class: 'hint comment-text' }, rec.comment)) : null,
         q ? el('div', { class: 'list-item' }, el('span', { class: 'hint comment-text' }, t('reasonLabel', { reason: q.reason }))) : null),
       el('div', { class: 'btn-row' },
         el('button', { type: 'button', class: 'btn-outline', on: { click: function () { load(S.date); } } }, t('edit')),
         el('button', { type: 'button', class: 'btn-fill', on: { click: function () { showMonth(ym); } } },
           ym === BOOT.today.slice(0, 7) ? t('viewMonth') : t('viewMonthOf', monthParams(ym)))),
       el('button', { type: 'button', id: 'to-feedback', class: 'feedback-link', on: { click: showFeedback } }, t('feedbackLink'))));
+}
+function notesText(rows) {
+  const notes = rows.map(function (r) { return String(r.note || '').trim(); });
+  if (rows.length > 1 && notes[0] && notes.every(function (n) { return n === notes[0]; })) return notes[0];
+  return rows.map(function (r, i) { return notes[i] ? r.task + t('noteJoin') + notes[i] : ''; })
+    .filter(function (x) { return x; }).join(t('noteSep'));
 }
 function monthView() {
   const ym = S.listMonth;
@@ -911,7 +941,7 @@ function monthView() {
           rs === 'pending' && S.requests[ymd].kind === 'clear' ? t('reqPillClear') : RP[rs]) : null),
       el('div', { class: 'd-hours' }, rec ? fmt(sumRows(rec.rows)) : ''),
       el('div', { class: 'd-tasks' }, rec ? rec.rows.map(function (r) { return r.task; }).join(t('listSep')) : null),
-      el('div', { class: 'd-comment' }, rec && rec.comment ? rec.comment : null),
+      el('div', { class: 'd-comment' }, rec ? notesText(rec.rows) || null : null),
       el('div', { class: 'd-actions' },
         el('button', { type: 'button', class: 'day-btn', disabled: S.busy,
           'aria-label': dayLabel(ymd) + ' ' + label, on: { click: function () { load(ymd); window.scrollTo(0, 0); } } }, label))));

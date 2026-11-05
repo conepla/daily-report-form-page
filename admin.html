@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-JmL6ewOZFvBIP4YP8PJwrwFelOndrmP5bcnbrpBUjew='; style-src 'sha256-4knOVkOq0ka6Ef19voWREO1TImABUPeSW9s6Ef7Wy5M='; connect-src https://script.google.com/macros/s/AKfycbxFATl0jolr2Zn7HLqEV-F2Igt6a_QANu9hLqgHYcm-0g1H2EE6zd96xZ9jY4dbhpU1-w/exec https://script.googleusercontent.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日報 管理画面</title>
+<style>
+  :root {
+    --ink: #1B2433; --muted: #4F5B6B; --sub: #3A4555;
+    --line: #D5DBE3; --line2: #E4E8ED; --field: #C4CCD6;
+    --ground: #F1F3F6; --surface: #FFFFFF; --soft: #F7F9FB;
+    --accent: #24489B; --accent-ink: #1A3577; --accent-soft: #E4EBF8;
+    --warn: #8A4A06; --warn-soft: #FDF1E4;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: 'BIZ UDPGothic', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', 'Yu Gothic', 'Noto Sans JP', Meiryo, sans-serif; font-size: 14px; line-height: 1.6; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  button:disabled { cursor: default; opacity: 0.6; }
+  :focus-visible { outline: 3px solid #E8912D; outline-offset: 2px; }
+  .sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .top { position: sticky; top: 0; z-index: 2; background: var(--surface); border-bottom: 1px solid var(--line); padding: 10px max(24px, calc((100% - 1072px) / 2)); display: flex; gap: 4px; }
+  .tab { height: 40px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: var(--sub); font-weight: 700; }
+  .tab[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-ink); }
+  .tab.alert { color: var(--warn); }
+  .tab.alert[aria-pressed="true"] { background: var(--warn-soft); color: var(--warn); }
+  .page { padding: 24px; display: flex; flex-direction: column; gap: 20px; max-width: 1120px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 22px; line-height: 1.4; }
+  h2 { margin: 0; font-size: 15px; }
+  .hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+  .toolbar-left { display: flex; flex-direction: column; gap: 6px; }
+  .toolbar-right { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .select { height: 40px; padding: 0 10px; border: 1px solid var(--field); border-radius: 8px; background: var(--surface); }
+  .btn { height: 40px; padding: 0 16px; border-radius: 8px; font-size: 14px; font-weight: 700; }
+  .btn-fill { border: 0; background: var(--accent); color: #FFFFFF; }
+  .btn-outline { border: 1px solid var(--accent); background: var(--surface); color: var(--accent); }
+  .msg { margin: 0; padding: 10px 14px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink); }
+  .msg a { color: var(--accent-ink); font-weight: 700; }
+  .err { margin: 0; padding: 10px 14px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-weight: 700; }
+  .strip { display: flex; flex-wrap: wrap; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .strip > div { flex: 1 1 220px; background: var(--surface); padding: 16px 20px; display: flex; flex-direction: column; gap: 2px; }
+  .strip .k { font-size: 13px; color: var(--muted); }
+  .strip .v { font-size: 26px; line-height: 1.3; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .strip .s { font-size: 12px; color: var(--muted); }
+  .cols { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 12px; font-weight: 700; color: var(--muted); padding: 6px 12px 8px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td, tbody th { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line2); font-weight: 400; color: var(--ink); vertical-align: middle; }
+  tbody th { font-size: 14px; }
+  .r { text-align: right; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .barcell { display: flex; align-items: center; gap: 10px; }
+  .barcell .num { width: 96px; flex: none; }
+  .track { flex: 1; height: 8px; border-radius: 4px; background: var(--line2); overflow: hidden; display: block; }
+  .fill { display: block; height: 100%; background: var(--accent); }
+  .proj { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--line2); }
+  .proj:first-of-type { padding-top: 0; border-top: 0; }
+  .proj-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .proj .track { height: 10px; border-radius: 5px; }
+  .tasks { display: flex; flex-direction: column; font-size: 13px; color: var(--muted); }
+  .tasks div { display: flex; justify-content: space-between; gap: 8px; }
+  .mt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+  .mt { border: 1px solid var(--line2); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .mt-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line2); }
+  .mt-name { font-size: 15px; }
+  .mt-task { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; font-size: 13px; }
+  .mt-tname { min-width: 0; overflow-wrap: anywhere; }
+  .mt-task .track { grid-column: 1 / -1; height: 6px; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 4px; padding: 1px 8px; white-space: nowrap; }
+  .tag.over { color: var(--accent-ink); background: var(--accent-soft); }
+  .tag.late { color: var(--sub); background: #E9ECF0; }
+  .tag.off { color: var(--sub); background: #E9ECF0; }
+  .mem { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; display: grid; grid-template-columns: 260px minmax(0, 480px); gap: 24px; align-items: start; }
+  .mem.off { background: var(--soft); }
+  .mem.off .who b, .mem.off .tl { opacity: 0.55; }
+  .side { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .who b { display: block; font-size: 15px; }
+  .who span { font-size: 12px; color: var(--muted); }
+  .seg { display: inline-flex; border: 1px solid var(--field); border-radius: 8px; overflow: hidden; }
+  .seg button { height: 32px; padding: 0 10px; border: 0; background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 700; }
+  .seg button.on { background: var(--accent); color: #FFFFFF; }
+  .seg.status button.on.rest { background: var(--muted); }
+  .seg-label { font-size: 11px; color: var(--muted); margin-bottom: -4px; }
+  .body { display: flex; flex-direction: column; gap: 8px; }
+  .tl { border: 1px solid var(--line2); border-radius: 8px; overflow: hidden; }
+  .t { display: flex; align-items: center; gap: 4px; height: 40px; padding: 0 4px 0 10px; border-bottom: 1px solid var(--line2); }
+  .t:last-child { border-bottom: 0; }
+  .t .no { width: 18px; font-size: 12px; color: #A9B3C0; font-variant-numeric: tabular-nums; }
+  .t .nm { flex: 1; min-width: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t button { width: 30px; height: 30px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 13px; }
+  .t button:hover:not(:disabled) { background: #E9ECF0; }
+  .t button:disabled { opacity: 0.25; }
+  .empty { padding: 8px 10px; font-size: 12px; color: var(--warn); background: var(--warn-soft); border-radius: 8px; }
+  .add { display: flex; gap: 6px; }
+  .add input { flex: 1; min-width: 0; height: 36px; padding: 0 10px; border: 1px dashed #A9B3C0; border-radius: 8px; background: var(--surface); }
+  .remind-state { font-size: 12px; color: var(--muted); }
+  .url-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .btn-mini { height: 28px; padding: 0 10px; border: 1px solid var(--accent); border-radius: 6px; background: var(--surface); color: var(--accent); font-size: 12px; font-weight: 700; }
+  .btn-mini.danger { border-color: #A04A08; color: #A04A08; }
+  .btn-mini:disabled { opacity: 0.5; }
+  .url-box { width: 100%; height: 30px; padding: 0 8px; border: 1px solid var(--field); border-radius: 6px; background: var(--soft); font-size: 11px; color: var(--sub); }
+  .url-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .url-results { margin: 0; padding-left: 20px; font-size: 13px; }
+  .url-results li.ng { color: var(--warn); font-weight: 700; }
+  .del-member { margin-top: 4px; padding: 4px 0; border: 0; background: transparent; color: var(--warn); font-size: 12px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+  .confirm { margin-top: 4px; padding: 10px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-size: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .confirm b { font-size: 13px; }
+  .confirm-btns { display: flex; gap: 6px; }
+  .confirm-yes { height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: #A04A08; color: #FFFFFF; font-weight: 700; }
+  .confirm-no { height: 32px; padding: 0 12px; border: 1px solid var(--field); border-radius: 6px; background: var(--surface); color: var(--sub); font-weight: 700; }
+  .newmem { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 14px 18px; }
+  .newmem input { height: 40px; padding: 0 10px; border: 1px solid var(--field); border-radius: 8px; background: var(--surface); }
+  .dashed { border-style: dashed; border-color: #A9B3C0; background: transparent; }
+  .loading { padding: 40px 24px; color: var(--muted); }
+  .req-card { max-width: 760px; }
+  .req-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; }
+  .req-head b { font-size: 16px; }
+  .reason { margin: 0; padding: 8px 12px; border-radius: 8px; background: var(--soft); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .cmp th:not(:first-child), .cmp td { width: 38%; }
+  .cmp td { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .cmp tbody th { font-size: 14px; }
+  .cmp td.chg { font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); padding-left: 8px; }
+  .cmp .cmp-note { margin-top: 2px; font-size: 12px; font-weight: 400; }
+  .req-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .req-actions input { flex: 1 1 260px; min-width: 0; height: 40px; padding: 0 10px; border: 1px solid var(--field); border-radius: 8px; background: var(--surface); }
+  .btn-warn { border: 1px solid #A04A08; background: var(--surface); color: #A04A08; }
+  .bulk { position: sticky; top: 69px; z-index: 1; box-shadow: 0 2px 8px rgba(27, 36, 51, 0.08); max-width: 760px; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 20px; }
+  .bulk .grow { flex: 1; }
+  .pick { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .pick input { width: 18px; height: 18px; margin: 0; }
+  .bulk-confirm { flex-basis: 100%; padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-ink); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .req-head .pick { font-size: 16px; }
+  .bulk.edit-bar { max-width: none; }
+  .linkish { height: 40px; padding: 0 6px; border: 0; background: transparent; color: var(--accent); font-weight: 700; }
+  .edit-table { padding: 0; gap: 0; }
+  .erow { display: grid; align-items: center; column-gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--line2); min-height: 46px; }
+  .erow:last-child { border-bottom: 0; }
+  .erow.head { background: var(--soft); font-size: 12px; font-weight: 700; color: var(--muted); min-height: 40px; border-radius: 12px 12px 0 0; }
+  .erow.chgrow { background: #FFFBEA; }
+  .erow.future { opacity: 0.45; }
+  .erow .th { min-width: 0; text-align: center; font-size: 11px; line-height: 1.25; overflow-wrap: anywhere; }
+  .edate { font-weight: 700; white-space: nowrap; }
+  .edate.sun { color: #B3261E; } .edate.sat { color: var(--accent); }
+  .pills { display: flex; flex-wrap: wrap; gap: 4px; }
+  .pill { font-size: 11px; font-weight: 700; border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+  .pill.done { color: var(--accent-ink); background: var(--accent-soft); }
+  .pill.today { color: var(--accent); background: var(--surface); }
+  .pill.req { color: var(--accent); background: var(--surface); box-shadow: inset 0 0 0 1px var(--accent); }
+  .pill.chg { color: #4A3600; background: #FFE58A; }
+  input.h { width: 100%; min-width: 0; height: 34px; padding: 0 1px; border: 1px solid var(--field); border-radius: 6px; background: var(--surface); font-size: 14px; text-align: center; }
+  .nt-btn { width: 100%; min-width: 0; height: 34px; padding: 0 8px; border: 1px solid var(--field); border-radius: 6px; background: var(--surface); display: flex; align-items: center; gap: 4px; text-align: left; color: var(--ink); font-size: 13px; cursor: pointer; }
+  .nt-btn .nt-sum { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nt-btn .nt-sum.empty { color: var(--muted); }
+  .nt-btn .nt-arrow { flex: none; color: var(--muted); font-size: 11px; }
+  .nt-btn:disabled { visibility: hidden; }
+  .nt-panel { grid-column: 1 / -1; margin: 6px 0 2px; padding: 8px 10px; border-radius: 8px; background: var(--soft); display: grid; grid-template-columns: minmax(80px, 200px) minmax(0, 1fr); gap: 6px 10px; align-items: start; }
+  .nt-panel .nt-name { padding-top: 7px; font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+  textarea.nt { display: block; width: 100%; height: 34px; padding: 6px 10px; border: 1px solid var(--field); border-radius: 6px; background: var(--surface); line-height: 1.4; resize: none; overflow-y: auto; }
+  input.h.chg, textarea.nt.chg, .nt-btn.chg { background: #FFF1BF; border-color: #9A7300; }
+  input.h.chg { font-weight: 700; }
+  input.h.bad { background: #FCE8E6; border-color: #B3261E; color: #B3261E; font-weight: 700; }
+  input.h:disabled, textarea.nt:disabled { background: var(--ground); border-color: var(--line2); }
+  .tot { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tot.bad { color: #B3261E; }
+  .edit-errors:empty { display: none; }
+  .edit-errors p { margin: 0; font-size: 13px; font-weight: 700; color: #B3261E; }
+  .edit-confirm { padding: 16px 20px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-ink); display: flex; flex-direction: column; gap: 10px; }
+  .edit-item { background: var(--surface); border-radius: 8px; padding: 8px 14px; color: var(--ink); display: flex; flex-direction: column; gap: 2px; }
+  .edit-item .ba { display: grid; grid-template-columns: 130px minmax(0, 1fr) 24px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+  .edit-item .note { font-size: 12px; color: var(--warn); }
+  .test-list { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+  .test-bar { display: flex; flex-wrap: wrap; gap: 8px; }
+  .test-results { margin: 0; padding-left: 20px; font-size: 13px; }
+  .test-results li.ng { color: var(--warn); font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="app"><p class="loading">読み込み中…</p></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxFATl0jolr2Zn7HLqEV-F2Igt6a_QANu9hLqgHYcm-0g1H2EE6zd96xZ9jY4dbhpU1-w/exec';
+function readKey() {
+  if (/[?&]a=/.test(location.search)) return '';
+  const m = /(?:^#|&)a=(ak_[a-f0-9]{64})/.exec(location.hash);
+  return m ? m[1] : '';
+}
+const KEY = readKey();
+const KEY_MSG = 'このアドレスは使えません。スプレッドシートの「日報 > 管理画面を開く」から開き直してください。';
+const NET_MSG = '通信できませんでした。インターネットにつながっているか確かめて、もう一度お試しください。';
+const BAD_MSG = 'うまくいきませんでした。もう一度お試しください（直しかけた内容は、この画面に残っています）。';
+const BIG_MSG = '変更が多すぎて、一度に送れません。何回かに分けて反映してください（直しかけた内容は、この画面に残っています）。';
+const ADMIN_MAX_BODY = 3000000;
+const SW_MSG = 'このページを安全に開けませんでした。ページを閉じて、もう一度開いてください。';
+let D = null;
+let view = 'report';
+let busy = false;
+let message = null;
+let error = '';
+const drafts = {};
+const newMember = { name: '', slackId: '', start: '' };
+let confirmDelete = null;
+const rejectDrafts = {};
+let reportStale = false;
+const picked = {};
+let editSel = null;
+const editData = {};
+let edits = {};
+const editOpen = {};
+let editNotify = true;
+let editConfirm = false;
+let editStale = false;
+let confirmAll = false;
+const shownUrl = {};
+let confirmReissue = null;
+let confirmUrlAll = '';
+let urlResults = null;
+const testPicked = {};
+let testResults = null;
+function el(tag, props) {
+  const node = document.createElement(tag);
+  const p = props || {};
+  Object.keys(p).forEach(function (k) {
+    const v = p[k];
+    if (v === null || v === undefined || v === false) return;
+    if (k === 'class') node.className = v;
+    else if (k === 'on') Object.keys(v).forEach(function (ev) { node.addEventListener(ev, v[ev]); });
+    else if (k === 'disabled' || k === 'selected' || k === 'checked') node[k] = true;
+    else if (k === 'value') node.value = v;
+    else if (k === 'css') node.style.cssText = v;
+    else node.setAttribute(k, v === true ? '' : String(v));
+  });
+  for (let i = 2; i < arguments.length; i++) add(node, arguments[i]);
+  return node;
+}
+function add(node, c) {
+  if (c === null || c === undefined || c === false) return;
+  if (Array.isArray(c)) { c.forEach(function (x) { add(node, x); }); return; }
+  node.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+}
+function errText(err) {
+  if (err.code === 'KEY') return KEY_MSG;
+  if (err.code === 'NET') return NET_MSG;
+  if (err.code === 'BAD' || !err.message) return BAD_MSG;
+  return err.message;
+}
+function call(fnName, args, done) {
+  const body = JSON.stringify({ fn: fnName, k: KEY, args: args });
+  if (body.length > ADMIN_MAX_BODY) {
+    error = BIG_MSG;
+    render();
+    return;
+  }
+  busy = true;
+  error = '';
+  render();
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: body,
+    credentials: 'omit',
+    referrerPolicy: 'no-referrer',
+    cache: 'no-store'
+  })
+    .then(function (res) { return res.json(); })
+    .then(function (r) {
+      busy = false;
+      if (r && r.ok) { done(r.data); render(); return; }
+      const err = new Error((r && r.error) || '');
+      err.code = (r && r.code) || 'ERR';
+      error = errText(err);
+      render();
+    }, function () {
+      busy = false;
+      error = NET_MSG;
+      render();
+    });
+}
+function loadMonth(ym) {
+  message = null;
+  call('getAdminData', [ym || ''], function (d) {
+    if (!D && d.requests.length) view = 'requests';
+    D = d;
+  });
+}
+function render() {
+  const app = document.getElementById('app');
+  if (!D) {
+    app.textContent = '';
+    add(app, error ? el('div', { class: 'page' }, el('p', { class: 'err', role: 'alert' }, error)) : el('p', { class: 'loading' }, '読み込み中…'));
+    return;
+  }
+  app.textContent = '';
+  function tab(key, label, alert) {
+    return el('button', { type: 'button', class: 'tab' + (alert ? ' alert' : ''), 'aria-pressed': String(view === key),
+      on: { click: function () {
+        view = key;
+        message = null;
+        error = '';
+        if (key === 'report' && reportStale) { reportStale = false; loadMonth(D.ym); return; }
+        if (key === 'edit') { openEdit(); return; }
+        render();
+      } } }, label);
+  }
+  const pending = D.requests.length;
+  add(app, el('nav', { class: 'top', 'aria-label': '管理メニュー' },
+    tab('report', '月次レポート'),
+    tab('requests', '承認待ち' + (pending ? '（' + pending + '）' : ''), pending > 0),
+    tab('edit', '報告の編集'),
+    tab('members', 'メンバーと作業内容')));
+  const page = el('div', { class: 'page' });
+  if (error) add(page, el('p', { class: 'err', role: 'alert' }, error));
+  if (message) add(page, el('p', { class: 'msg', role: 'status' }, message.text, message.url ? [' ', el('a', { href: message.url, target: '_blank', rel: 'noopener noreferrer' }, '開く')] : null));
+  if (view === 'report') add(page, reportView());
+  if (view === 'requests') add(page, requestsView());
+  if (view === 'edit') add(page, editView());
+  if (view === 'members') add(page, membersView());
+  add(app, page);
+  if (view === 'edit') refreshEditAll();
+}
+function reportView() {
+  const max = D.members.reduce(function (a, m) { return Math.max(a, m.hours); }, 0) || 1;
+  const c = D.checkCounts;
+  return [
+    el('div', { class: 'toolbar' },
+      el('div', { class: 'toolbar-left' },
+        el('h1', null, D.label + 'の月次レポート'),
+        el('p', { class: 'hint' }, (D.partial ? 'この月はまだ途中です（今日までの報告を集計しています）。' : '月末までの報告を集計しています。') + '報告がない日は作業なしとして扱います。')),
+      el('div', { class: 'toolbar-right' },
+        el('label', { for: 'month', class: 'sr' }, '表示する月'),
+        el('select', { id: 'month', class: 'select', disabled: busy, on: { change: function (e) { loadMonth(e.target.value); } } },
+          D.months.map(function (m) { return el('option', { value: m.ym, selected: m.ym === D.ym }, m.label); })),
+        el('button', { type: 'button', class: 'btn btn-fill', disabled: busy, on: { click: function () {
+          call('createReportFromAdmin', [D.ym], function (url) {
+            message = { text: D.label + 'のレポートをスプレッドシートに出力しました（管理者用チャンネルの設定があれば投稿も済んでいます）。', url: url };
+          });
+        } } }, busy ? '処理中…' : 'スプレッドシートに出力してSlackに投稿'))),
+    el('div', { class: 'strip' },
+      el('div', null, el('span', { class: 'k' }, '合計作業時間'), el('span', { class: 'v' }, D.totalLabel), el('span', { class: 's' }, '報告した人 ' + D.reporters + '人')),
+      el('div', null, el('span', { class: 'k' }, D.overHours + '時間超え'), el('span', { class: 'v' }, c.over + '件'), el('span', { class: 's' }, '1日の合計が' + D.overHours + '時間を超えた日')),
+      el('div', null, el('span', { class: 'k' }, '遅れて報告'), el('span', { class: 'v' }, c.late + '件'), el('span', { class: 's' }, '作業日の翌々日以降に送られた日'))),
+    el('div', { class: 'cols' },
+      el('section', { class: 'card', css: 'flex:3 1 520px' },
+        el('h2', null, 'メンバー別'),
+        D.members.length ? el('div', { class: 'scroll' }, el('table', { css: 'min-width:420px' },
+          el('thead', null, el('tr', null,
+            el('th', { scope: 'col' }, 'メンバー'), el('th', { scope: 'col' }, '作業時間'),
+            el('th', { scope: 'col', class: 'r' }, '報告した日'))),
+          el('tbody', null, D.members.map(function (m) {
+            return el('tr', null,
+              el('th', { scope: 'row', css: 'white-space:nowrap' }, m.name),
+              el('td', null, el('div', { class: 'barcell' }, el('span', { class: 'num' }, m.hoursLabel),
+                el('span', { class: 'track', 'aria-hidden': 'true' }, el('span', { class: 'fill', css: 'width:' + Math.round(m.hours / max * 1000) / 10 + '%' })))),
+              el('td', { class: 'r num' }, m.reportDays + '日'));
+          })))) : el('p', { class: 'hint' }, 'この月の記録はまだありません。')),
+      el('section', { class: 'card', css: 'flex:2 1 320px' },
+        el('h2', null, '作業内容別'),
+        D.tasks.length ? D.tasks.map(function (t) {
+          return el('div', { class: 'proj' },
+            el('div', { class: 'proj-top' }, el('b', null, t.name), el('span', { class: 'num' }, t.hoursLabel + ' ', el('span', { class: 'hint', css: 'display:inline' }, t.share + '%'))),
+            el('span', { class: 'track', 'aria-hidden': 'true' }, el('span', { class: 'fill', css: 'width:' + t.share + '%' })));
+        }) : el('p', { class: 'hint' }, 'この月の記録はまだありません。'))),
+    memberTasksCard(),
+    el('section', { class: 'card' },
+      el('h2', null, '要確認の一覧'),
+      D.checks.length ? el('div', { class: 'scroll' }, el('table', { css: 'min-width:560px' },
+        el('thead', null, el('tr', null, el('th', { scope: 'col' }, '日付'), el('th', { scope: 'col' }, 'メンバー'), el('th', { scope: 'col' }, '種類'), el('th', { scope: 'col' }, '内容'))),
+        el('tbody', null, D.checks.map(function (k) {
+          const cls = k.type === '遅れて報告' ? 'late' : 'over';
+          return el('tr', null, el('td', { class: 'num' }, k.dateLabel), el('td', { css: 'white-space:nowrap' }, k.name),
+            el('td', null, el('span', { class: 'tag ' + cls }, k.type)), el('td', { css: 'color:#3A4555' }, k.detail));
+        })))) : el('p', { class: 'hint' }, '要確認の項目はありません。'))
+  ];
+}
+function memberTasksCard() {
+  const list = D.members.filter(function (m) { return m.hours > 0; });
+  return el('section', { class: 'card' },
+    el('h2', null, 'メンバー×作業内容'),
+    el('p', { class: 'hint' }, '各メンバーが、どの作業内容に何時間使ったか（多い順。％はその人の作業時間に占める割合）。スプレッドシートに出力すると、メンバーごとのシートに1日ずつの内訳も出ます。'),
+    list.length
+      ? el('div', { class: 'mt-grid' }, list.map(function (m) {
+          return el('div', { class: 'mt' },
+            el('div', { class: 'mt-top' }, el('b', { class: 'mt-name' }, m.name), el('span', { class: 'num' }, m.hoursLabel)),
+            m.tasks.map(function (t) {
+              return el('div', { class: 'mt-task' },
+                el('span', { class: 'mt-tname' }, t.name),
+                el('span', { class: 'num' }, t.hoursLabel + ' ', el('span', { class: 'hint', css: 'display:inline' }, t.share + '%')),
+                el('span', { class: 'track', 'aria-hidden': 'true' }, el('span', { class: 'fill', css: 'width:' + t.share + '%' })));
+            }));
+        }))
+      : el('p', { class: 'hint' }, 'この月の記録はまだありません。'));
+}
+function requestsView() {
+  return [
+    el('div', { class: 'toolbar-left' },
+      el('h1', null, '承認待ち'),
+      el('p', { class: 'hint' }, '締め切りを過ぎた日の報告・修正・報告の取り消し（その日の報告を消して作業なしにする）は、メンバーが理由を書いて申請します。承認すると「報告」シートに反映され、却下すると記録はそのままです。どちらも結果は本人にSlackのDMで届きます（却下の理由も）。'),
+      el('p', { class: 'hint' }, '1件ずつ承認・却下するほか、チェックした申請やすべての申請をまとめて承認できます（却下は理由を書くことがあるので1件ずつです）。これまでの申請と結果は、スプレッドシートの「申請」シートで見られます。')),
+    D.requests.length ? [bulkBar(), D.requests.map(requestCard)] : el('p', { class: 'hint' }, '承認待ちの申請はありません。')
+  ];
+}
+function pickedNos() {
+  return D.requests.filter(function (q) { return picked[q.no]; }).map(function (q) { return q.no; });
+}
+function approveMany(nos) {
+  call('approveRequests', [nos], function (res) {
+    Object.keys(picked).forEach(function (k) { delete picked[k]; });
+    confirmAll = false;
+    D.requests = res.requests;
+    if (res.approved) { reportStale = true; editStale = true; }
+    let text = res.approved + '件を承認しました。「報告」シートに反映し、本人にDMで知らせました。';
+    if (res.failed.length) {
+      text += ' 承認できなかったもの：' + res.failed.map(function (f) { return 'No.' + f.no + '（' + f.error + '）'; }).join('、');
+    }
+    message = { text: text };
+  });
+}
+function bulkBar() {
+  const all = D.requests.length;
+  const nos = pickedNos();
+  return el('section', { class: 'card bulk', 'aria-label': 'まとめて承認' },
+    el('label', { class: 'pick' },
+      el('input', { type: 'checkbox', id: 'pick-all', checked: nos.length === all, disabled: busy,
+        on: { change: function (e) {
+          D.requests.forEach(function (q) { if (e.target.checked) picked[q.no] = true; else delete picked[q.no]; });
+          render();
+        } } }),
+      'すべて選ぶ'),
+    el('span', { class: 'grow' }),
+    el('button', { type: 'button', id: 'approve-picked', class: 'btn btn-outline', disabled: busy || !nos.length,
+      on: { click: function () { approveMany(nos); } } }, '選んだ' + nos.length + '件を承認する'),
+    el('button', { type: 'button', id: 'approve-all', class: 'btn btn-fill', disabled: busy || confirmAll,
+      on: { click: function () { confirmAll = true; message = null; render(); } } }, 'すべて承認する（' + all + '件）'),
+    confirmAll
+      ? el('div', { class: 'bulk-confirm', role: 'alertdialog', 'aria-label': 'すべて承認の確認' },
+          el('b', null, all + '件をすべて承認しますか？'),
+          el('span', null, '申請の内容で「報告」シートが置き換わり、本人にDMが届きます。'),
+          el('button', { type: 'button', id: 'approve-all-yes', class: 'btn btn-fill', disabled: busy,
+            on: { click: function () { approveMany(D.requests.map(function (q) { return q.no; })); } } }, 'すべて承認する'),
+          el('button', { type: 'button', id: 'approve-all-no', class: 'btn btn-outline', disabled: busy,
+            on: { click: function () { confirmAll = false; render(); } } }, 'やめる'))
+      : null);
+}
+function requestCard(q) {
+  const b = q.before, a = q.after;
+  const nothing = !b.rows.length;
+  const clear = q.kind === 'clear';
+  const who = q.name + 'さんの' + q.dateLabel;
+  const tasks = a.rows.map(function (r) { return r.task; });
+  b.rows.forEach(function (r) { if (tasks.indexOf(r.task) < 0) tasks.push(r.task); });
+  function hoursOf(side, task) {
+    const r = side.rows.find(function (x) { return x.task === task; });
+    return r ? Number(r.hours) : 0;
+  }
+  function sum(side) { return side.rows.reduce(function (s, r) { return s + Number(r.hours); }, 0); }
+  function noteOf(side, task) {
+    const r = side.rows.find(function (x) { return x.task === task; });
+    return r ? String(r.note || '').trim() : '';
+  }
+  function h(n) { return n ? n + '時間' : '—'; }
+  function cell(hours, note) { return [el('div', { class: 'cmp-h' }, h(hours)), note ? el('div', { class: 'cmp-note' }, note) : null]; }
+  function row(label, before, after, changed) {
+    return el('tr', null, el('th', { scope: 'row' }, label), el('td', null, before), el('td', { class: changed ? 'chg' : null }, after));
+  }
+  const rows = [];
+  tasks.forEach(function (task) {
+    const bh = hoursOf(b, task), ah = hoursOf(a, task), bn = noteOf(b, task), an = noteOf(a, task);
+    rows.push(row(task, cell(bh, bn), cell(ah, an), bh !== ah || bn !== an));
+  });
+  if (tasks.length) rows.push(row('合計', cell(sum(b)), cell(sum(a)), sum(b) !== sum(a)));
+  return el('section', { class: 'card req-card', 'data-no': q.no, 'data-ymd': q.ymd },
+    el('div', { class: 'req-head' },
+      el('label', { class: 'pick' },
+        el('input', { type: 'checkbox', class: 'pick-box', checked: !!picked[q.no], disabled: busy, 'aria-label': who + 'の申請を選ぶ',
+          on: { change: function (e) { if (e.target.checked) picked[q.no] = true; else delete picked[q.no]; render(); } } }),
+        el('b', null, who + 'の' + (clear ? '報告の取り消し' : nothing ? '報告' : '修正'))),
+      el('span', { class: 'hint' }, '申請 ' + q.at + '　No.' + q.no)),
+    el('p', { class: 'reason' }, '理由：' + q.reason),
+    clear ? el('p', { class: 'hint' }, nothing ? 'この日には報告がありません（承認しても何も変わりません）。' : '承認すると、この日の報告が消えます（作業なしになります）。') : null,
+    el('div', { class: 'scroll' }, el('table', { class: 'cmp' },
+      el('thead', null, el('tr', null,
+        el('th', { scope: 'col' }, el('span', { class: 'sr' }, '項目')),
+        el('th', { scope: 'col' }, '今の記録' + (nothing ? '（報告なし）' : '')),
+        el('th', { scope: 'col' }, '申請の内容'))),
+      el('tbody', null, rows))),
+    el('div', { class: 'req-actions' },
+      el('label', { for: 'reject-' + q.no, class: 'sr' }, '却下の理由'),
+      el('input', { id: 'reject-' + q.no, class: 'reject-reason', type: 'text', maxlength: '200', value: rejectDrafts[q.no] || '',
+        placeholder: '却下の理由（任意。却下したとき本人に届きます）',
+        on: { input: function (e) { rejectDrafts[q.no] = e.target.value; } } }),
+      el('button', { type: 'button', class: 'btn btn-fill approve', disabled: busy, on: { click: function () {
+        call('approveRequest', [q.no], function (list) {
+          D.requests = list;
+          editStale = true;
+          reportStale = true;
+          message = { text: who + 'の申請を承認しました。「報告」シートに反映し、本人にDMで知らせました。' };
+        });
+      } } }, '承認する'),
+      el('button', { type: 'button', class: 'btn btn-warn reject', disabled: busy, on: { click: function () {
+        call('rejectRequest', [q.no, rejectDrafts[q.no] || ''], function (list) {
+          delete rejectDrafts[q.no];
+          D.requests = list;
+          editStale = true;
+          message = { text: who + 'の申請を却下しました。本人にDMで知らせました。' };
+        });
+      } } }, '却下する')));
+}
+function openEdit() {
+  const first = D.memberList.find(function (x) { return x.active; }) || D.memberList[0];
+  if (!editSel && first) editSel = { slackId: first.slackId, ym: D.months[0].ym };
+  if (editStale && editSel) { reloadEdits(); return; }
+  loadEdit();
+}
+function reloadEdits() {
+  const want = {};
+  Object.keys(edits).forEach(function (k) {
+    const i = k.lastIndexOf('|');
+    want[k.slice(0, i) + '|' + k.slice(i + 1, i + 8)] = true;
+  });
+  if (editSel) want[editSel.slackId + '|' + editSel.ym] = true;
+  const list = Object.keys(want).map(function (k) {
+    const i = k.lastIndexOf('|');
+    return { slackId: k.slice(0, i), ym: k.slice(i + 1) };
+  });
+  editStale = false;
+  editConfirm = false;
+  if (!list.length) { render(); return; }
+  call('getEditMonths', [list], function (months) {
+    Object.keys(editData).forEach(function (k) { delete editData[k]; });
+    months.forEach(function (m) { if (!m.missing) editData[m.slackId + '|' + m.ym] = m; });
+    pruneEdits();
+  });
+}
+function pruneEdits() {
+  Object.keys(edits).forEach(function (k) {
+    const i = k.lastIndexOf('|');
+    const ymd = k.slice(i + 1);
+    const m = editData[k.slice(0, i) + '|' + ymd.slice(0, 7)];
+    if (!m) { delete edits[k]; return; }
+    const e = edits[k];
+    Object.keys(e.hours).forEach(function (t) { if (m.tasks.indexOf(t) < 0) { delete e.hours[t]; delete e.notes[t]; } });
+    const day = m.days.find(function (d) { return d.ymd === ymd; });
+    if (editSame(m, e, editBase(day))) delete edits[k];
+  });
+  if (editSel && !editData[editSel.slackId + '|' + editSel.ym]) {
+    editSel = null;
+    openEdit();
+  }
+}
+function dropEditsFor(slackId) {
+  Object.keys(edits).forEach(function (k) { if (k.slice(0, k.lastIndexOf('|')) === slackId) delete edits[k]; });
+  Object.keys(editData).forEach(function (k) { if (k.slice(0, k.lastIndexOf('|')) === slackId) delete editData[k]; });
+  if (editSel && editSel.slackId === slackId) editSel = null;
+}
+function editMonthList() {
+  const set = {};
+  D.months.forEach(function (x) { set[x.ym] = true; });
+  const p = D.months[0].ym.split('-').map(Number);
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(Date.UTC(p[0], p[1] - 1 - i, 1));
+    set[d.getUTCFullYear() + '-' + (d.getUTCMonth() < 9 ? '0' : '') + (d.getUTCMonth() + 1)] = true;
+  }
+  return Object.keys(set).sort().reverse();
+}
+function loadEdit() {
+  editConfirm = false;
+  if (!editSel || editData[editSel.slackId + '|' + editSel.ym]) { render(); return; }
+  const k = editSel.slackId + '|' + editSel.ym;
+  call('getEditMonth', [editSel.slackId, editSel.ym], function (m) { editData[k] = m; });
+}
+function hText(v) {
+  return String(v == null ? '' : v).replace(/[０-９．]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).trim();
+}
+function hNum(v) {
+  const s = hText(v);
+  return s === '' ? 0 : Number(s);
+}
+function hOk(v) {
+  const s = hText(v);
+  if (s === '') return true;
+  if (!/^(\d+\.?\d*|\.\d+)$/.test(s)) return false;
+  const n = Number(s);
+  return n <= 12 && Math.floor(n * 2) === n * 2;
+}
+function editBase(day) {
+  const hours = {};
+  Object.keys(day.hours).forEach(function (t) { hours[t] = String(day.hours[t]); });
+  return { hours: hours, notes: Object.assign({}, day.notes) };
+}
+function editCur(m, day) { return edits[m.slackId + '|' + day.ymd] || editBase(day); }
+function editTotal(m, r) {
+  return m.tasks.reduce(function (a, t) { return a + (hOk(r.hours[t]) ? hNum(r.hours[t]) : 0); }, 0);
+}
+function editSame(m, a, b) {
+  return m.tasks.every(function (t) {
+    const h = hNum(a.hours[t]);
+    if (h !== hNum(b.hours[t])) return false;
+    return !h || noteText(a, t) === noteText(b, t);
+  });
+}
+function noteText(r, t) { return String(r.notes[t] || '').trim(); }
+function noteTasks(m, r) {
+  return m.tasks.filter(function (t) { return hOk(r.hours[t]) && hNum(r.hours[t]) > 0; });
+}
+function notesSummary(m, r) {
+  const list = noteTasks(m, r);
+  const notes = list.map(function (t) { return noteText(r, t); });
+  if (list.length > 1 && notes[0] && notes.every(function (n) { return n === notes[0]; })) return notes[0];
+  return list.map(function (t, i) { return notes[i] ? t + '：' + notes[i] : ''; })
+    .filter(function (x) { return x; }).join(' ／ ');
+}
+function editLookup(key) {
+  const i = key.lastIndexOf('|');
+  const ymd = key.slice(i + 1);
+  const m = editData[key.slice(0, i) + '|' + ymd.slice(0, 7)];
+  return { m: m, day: m.days.find(function (d) { return d.ymd === ymd; }) };
+}
+function setEdit(m, day, change, syncValues) {
+  const key = m.slackId + '|' + day.ymd;
+  const cur = editCur(m, day);
+  const next = { hours: Object.assign({}, cur.hours), notes: Object.assign({}, cur.notes) };
+  change(next);
+  if (editSame(m, next, editBase(day))) delete edits[key];
+  else edits[key] = next;
+  if (editConfirm) {
+    editConfirm = false;
+    const c = document.querySelector('.edit-confirm');
+    if (c) c.parentNode.removeChild(c);
+  }
+  refreshEditRow(key, syncValues);
+  refreshEditBar();
+}
+function refreshEditRow(key, syncValues) {
+  const row = Array.prototype.find.call(document.querySelectorAll('.erow'), function (r) { return r.getAttribute('data-key') === key; });
+  if (!row) return;
+  const x = editLookup(key);
+  const m = x.m, day = x.day;
+  const base = editBase(day);
+  const cur = editCur(m, day);
+  const edited = !!edits[key];
+  const total = editTotal(m, cur);
+  row.classList.toggle('chgrow', edited);
+  row.querySelectorAll('input.h').forEach(function (inp) {
+    const t = inp.getAttribute('data-task');
+    if (syncValues) inp.value = cur.hours[t] || '';
+    inp.disabled = busy || day.future;
+    inp.classList.toggle('bad', !hOk(cur.hours[t]));
+    inp.classList.toggle('chg', hOk(cur.hours[t]) && hNum(cur.hours[t]) !== hNum(base.hours[t]));
+  });
+  refreshNotes(row, key, m, day, base, cur, syncValues);
+  const tot = row.querySelector('.tot');
+  tot.textContent = total ? total + '時間' : '';
+  tot.classList.toggle('bad', total > 24);
+  const pills = row.querySelector('.pills');
+  pills.textContent = '';
+  if (day.future) return;
+  function pill(cls, text) { pills.appendChild(el('span', { class: 'pill ' + cls }, text)); }
+  if (total > 0) pill('done', '報告済み');
+  else if (day.ymd === m.today) pill('today', '今日');
+  if (day.pending) pill('req', '申請中');
+  if (edited) pill('chg', '変更');
+}
+function refreshNotes(row, key, m, day, base, cur, syncValues) {
+  const list = noteTasks(m, cur);
+  const btn = row.querySelector('.nt-btn');
+  const sum = notesSummary(m, cur);
+  const changed = list.some(function (t) { return noteText(cur, t) !== noteText(base, t); });
+  if (!list.length) delete editOpen[key];
+  const open = !!editOpen[key];
+  btn.disabled = day.future || !list.length;
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  btn.classList.toggle('chg', changed);
+  const sumEl = btn.querySelector('.nt-sum');
+  sumEl.textContent = list.length ? sum || '（なし）' : '';
+  sumEl.classList.toggle('empty', !sum);
+  btn.querySelector('.nt-arrow').textContent = list.length ? (open ? '▴' : '▾') : '';
+  let panel = row.querySelector('.nt-panel');
+  if (!open) {
+    if (panel) panel.parentNode.removeChild(panel);
+    return;
+  }
+  const sig = list.join('\n');
+  if (!panel || panel.getAttribute('data-tasks') !== sig) {
+    if (panel) panel.parentNode.removeChild(panel);
+    panel = el('div', { class: 'nt-panel', 'data-tasks': sig, role: 'group', 'aria-label': day.label + 'の作業の詳細' },
+      list.map(function (t) {
+        return [
+          el('span', { class: 'nt-name' }, t),
+          el('textarea', { class: 'nt', 'data-task': t, rows: '1', maxlength: '200', value: cur.notes[t] || '',
+            'aria-label': day.label + ' ' + t + 'で何をしたか',
+            on: { input: function (e) {
+              const v = e.target.value;
+              setEdit(m, day, function (r) { r.notes[t] = v; });
+            } } })
+        ];
+      }));
+    row.appendChild(panel);
+  } else if (syncValues) {
+    panel.querySelectorAll('textarea.nt').forEach(function (ta) { ta.value = cur.notes[ta.getAttribute('data-task')] || ''; });
+  }
+  panel.querySelectorAll('textarea.nt').forEach(function (ta) {
+    const t = ta.getAttribute('data-task');
+    ta.disabled = busy || day.future;
+    ta.classList.toggle('chg', noteText(cur, t) !== noteText(base, t));
+  });
+}
+function editSummary() {
+  const order = D.memberList.map(function (x) { return x.slackId; });
+  const keys = Object.keys(edits).sort(function (a, b) {
+    const ia = order.indexOf(a.slice(0, a.lastIndexOf('|'))), ib = order.indexOf(b.slice(0, b.lastIndexOf('|')));
+    return ia - ib || (a < b ? -1 : 1);
+  });
+  const per = [];
+  const errors = [];
+  keys.forEach(function (k) {
+    const x = editLookup(k);
+    const e = edits[k];
+    const last = per[per.length - 1];
+    if (last && last.slackId === x.m.slackId) last.n++;
+    else per.push({ slackId: x.m.slackId, name: x.m.name, n: 1 });
+    const where = x.m.name + 'さんの' + x.day.label + '：';
+    if (!x.m.tasks.every(function (t) { return hOk(e.hours[t]); })) errors.push(where + '時間は0〜12の、30分（0.5）単位で入れてください');
+    else if (editTotal(x.m, e) > 24) errors.push(where + '1日の合計が24時間を超えています');
+  });
+  return { keys: keys, per: per, errors: errors };
+}
+function editBarText(sum) {
+  if (!sum.keys.length) return '変更はありません';
+  return '変更：' + sum.per.map(function (p) { return p.name + ' ' + p.n + '日'; }).join('、') + '（まだ反映していません）';
+}
+function editMemberLabel(x, sum) {
+  const p = sum.per.find(function (q) { return q.slackId === x.slackId; });
+  return x.name + (x.active ? '' : '（休止中）') + (p ? '（変更 ' + p.n + '日）' : '');
+}
+function refreshEditBar() {
+  const sum = editSummary();
+  const text = document.getElementById('edit-bar-text');
+  if (!text) return;
+  text.textContent = editBarText(sum);
+  document.getElementById('edit-reset').disabled = busy || !sum.keys.length;
+  document.getElementById('edit-apply').disabled = busy || !sum.keys.length || sum.errors.length > 0;
+  const box = document.getElementById('edit-errors');
+  box.textContent = '';
+  sum.errors.forEach(function (t) { box.appendChild(el('p', null, t)); });
+  document.querySelectorAll('#edit-member option').forEach(function (o) {
+    const x = D.memberList.find(function (y) { return y.slackId === o.value; });
+    if (x) o.textContent = editMemberLabel(x, sum);
+  });
+  const m = editData[editSel.slackId + '|' + editSel.ym];
+  const monthTotal = m.days.reduce(function (a, day) { return a + editTotal(m, editCur(m, day)); }, 0);
+  document.getElementById('edit-month-total').textContent = monthTotal + '時間';
+}
+function editText(m, r) {
+  const parts = m.tasks.filter(function (t) { return hNum(r.hours[t]) > 0; }).map(function (t) {
+    const note = noteText(r, t);
+    return t + ' ' + hNum(r.hours[t]) + '時間' + (note ? '（' + note + '）' : '');
+  });
+  if (!parts.length) return '報告なし（作業なし）';
+  return parts.join('、');
+}
+function applyAllEdits() {
+  const changes = editSummary().keys.map(function (k) {
+    const x = editLookup(k);
+    const e = edits[k];
+    const rows = x.m.tasks.filter(function (t) { return hNum(e.hours[t]) > 0; }).map(function (t) {
+      return { task: t, hours: hNum(e.hours[t]), note: noteText(e, t) };
+    });
+    return { slackId: x.m.slackId, ymd: x.day.ymd, kind: rows.length ? 'report' : 'clear', rows: rows,
+      before: { hours: x.day.hours, notes: x.day.notes } };
+  });
+  const notify = editNotify;
+  call('applyEdits', [changes, notify, { slackId: editSel.slackId, ym: editSel.ym }], function (res) {
+    edits = {};
+    editConfirm = false;
+    Object.keys(editData).forEach(function (k) { delete editData[k]; });
+    if (res.month) editData[editSel.slackId + '|' + editSel.ym] = res.month;
+    else setTimeout(loadEdit, 0);
+    if (res.requests) D.requests = res.requests;
+    reportStale = true;
+    let text = res.count + '日分を反映しました。「報告」シートに書き込み、';
+    if (!notify) text += '本人には知らせていません。';
+    else if (res.notNotified.length) text += '本人にDMで知らせました（送れなかった人：' + res.notNotified.join('、') + '）。';
+    else text += '本人にDMで知らせました。';
+    if (res.withdrawn) text += ' その日の承認待ちの申請' + res.withdrawn + '件は「取り下げ」にしました。';
+    message = { text: text };
+  });
+}
+function refreshEditAll() {
+  const m = editSel && editData[editSel.slackId + '|' + editSel.ym];
+  if (!m || !document.getElementById('edit-bar-text')) return;
+  m.days.forEach(function (day) { refreshEditRow(m.slackId + '|' + day.ymd, false); });
+  refreshEditBar();
+}
+function editView() {
+  const head = el('div', { class: 'toolbar-left' },
+    el('h1', null, '報告の編集'),
+    el('p', { class: 'hint' }, 'メンバーと月を選ぶと、その人の1か月分の報告が表で並びます。時間と作業の詳細を直して、最後に「まとめて反映する」で一度に保存します（反映するまでは保存されません）。別のメンバーや月に切り替えても直した内容は残るので、何人分でもまとめて反映できます。'),
+    el('p', { class: 'hint' }, '作業の詳細は、その日の「作業の詳細」のボタンを押すと、時間がある作業内容ごとに「何をしたか」を直せます（管理者が直すときは空でもかまいません）。'),
+    el('p', { class: 'hint' }, '直したところは黄色になります。締め切りに関係なく、今日までのどの日でも直せます。報告がない日は作業なしです。時間を全部消すと、その日の報告は消えます（作業なしになります）。直した内容は「編集の記録」シートに残ります。'));
+  if (!editSel) return [head, el('p', { class: 'empty' }, 'メンバーがいません。「メンバーと作業内容」で追加してください。')];
+  const m = editData[editSel.slackId + '|' + editSel.ym];
+  if (!m) return [head, el('p', { class: 'loading' }, '読み込み中…')];
+  const sum = editSummary();
+  const months = editMonthList();
+  const idx = months.indexOf(editSel.ym);
+  function goMonth(i) { editSel.ym = months[i]; message = null; loadEdit(); }
+  const n = m.tasks.length;
+  const cols = 'grid-template-columns: 108px 84px ' + (n ? 'repeat(' + n + ', minmax(30px, 1fr)) ' : '') + '66px minmax(90px, 1.6fr)';
+  const toolbar = el('div', { class: 'toolbar' },
+    el('div', { class: 'toolbar-right' },
+      el('label', { for: 'edit-member', css: 'font-weight:700' }, 'メンバー'),
+      el('select', { id: 'edit-member', class: 'select', disabled: busy, on: { change: function (e) {
+        editSel.slackId = e.target.value;
+        message = null;
+        loadEdit();
+      } } }, D.memberList.map(function (x) {
+        return el('option', { value: x.slackId, selected: x.slackId === editSel.slackId }, editMemberLabel(x, sum));
+      })),
+      el('button', { type: 'button', id: 'edit-prev', class: 'btn btn-outline', 'aria-label': '前の月', disabled: busy || idx < 0 || idx >= months.length - 1,
+        on: { click: function () { goMonth(idx + 1); } } }, '‹'),
+      el('b', { id: 'edit-month-title', css: 'min-width:110px;text-align:center;font-size:16px' }, m.label),
+      el('button', { type: 'button', id: 'edit-next', class: 'btn btn-outline', 'aria-label': '次の月', disabled: busy || idx <= 0,
+        on: { click: function () { goMonth(idx - 1); } } }, '›')),
+    el('span', { class: 'hint' }, 'この月の合計 ', el('b', { id: 'edit-month-total', css: 'font-size:18px;color:#1B2433' }, '')));
+  const bar = el('section', { class: 'card bulk edit-bar', 'aria-label': 'まとめて反映' },
+    el('span', { id: 'edit-bar-text', css: 'font-weight:700' }, ''),
+    el('span', { class: 'grow' }),
+    el('button', { type: 'button', id: 'edit-reload', class: 'linkish', disabled: busy, title: '承認や本人の送信で変わった内容を読み直します（直した内容は残ります）',
+      on: { click: function () { message = null; reloadEdits(); } } }, '表を読み直す'),
+    el('button', { type: 'button', id: 'edit-reset', class: 'btn btn-outline', on: { click: function () {
+      edits = {};
+      editConfirm = false;
+      message = null;
+      render();
+    } } }, '変更を取り消す'),
+    el('button', { type: 'button', id: 'edit-apply', class: 'btn btn-fill', on: { click: function () {
+      editConfirm = true;
+      message = null;
+      render();
+    } } }, 'まとめて反映する'),
+    el('div', { id: 'edit-errors', class: 'edit-errors', css: 'flex-basis:100%' }));
+  let confirm = null;
+  if (editConfirm && sum.keys.length) {
+    const groups = [];
+    sum.keys.forEach(function (k) {
+      const x = editLookup(k);
+      let g = groups[groups.length - 1];
+      if (!g || g.slackId !== x.m.slackId) { g = { slackId: x.m.slackId, name: x.m.name, items: [] }; groups.push(g); }
+      g.items.push(el('div', { class: 'edit-item' },
+        el('div', { class: 'ba' },
+          el('b', null, x.day.label),
+          el('span', { css: 'color:#4F5B6B' }, editText(x.m, editBase(x.day))),
+          el('span', { 'aria-hidden': 'true', css: 'color:#4F5B6B' }, '→'),
+          el('b', null, editText(x.m, edits[k]))),
+        x.day.pending ? el('span', { class: 'note' }, 'この日の承認待ちの申請（' + x.day.pending + '）は「取り下げ」になります') : null));
+    });
+    confirm = el('section', { class: 'edit-confirm', 'aria-label': '反映の確認' },
+      el('b', { css: 'font-size:16px' }, sum.keys.length + '日分を反映します。よろしいですか？'),
+      groups.map(function (g) {
+        return el('div', { css: 'display:flex;flex-direction:column;gap:6px' }, el('b', { css: 'color:#1B2433' }, g.name + 'さん'), g.items);
+      }),
+      el('label', { class: 'pick', css: 'color:#1B2433' },
+        el('input', { type: 'checkbox', id: 'edit-notify', checked: editNotify, on: { change: function (e) { editNotify = e.target.checked; } } }),
+        '本人にSlackのDMで知らせる（直した日の一覧が届きます）'),
+      el('div', { css: 'display:flex;gap:8px' },
+        el('button', { type: 'button', id: 'edit-confirm-yes', class: 'btn btn-fill', disabled: busy, on: { click: applyAllEdits } }, busy ? '反映中…' : '反映する'),
+        el('button', { type: 'button', id: 'edit-confirm-no', class: 'btn btn-outline', disabled: busy, on: { click: function () { editConfirm = false; render(); } } }, '戻る')));
+  }
+  const headRow = el('div', { class: 'erow head', css: cols },
+    el('span', null, '日付'), el('span', null, '状態'),
+    m.tasks.map(function (t) { return el('span', { class: 'th', title: t }, t); }),
+    el('span', { css: 'text-align:right' }, '合計'), el('span', null, '作業の詳細'));
+  const rows = m.days.map(function (day) {
+    const cur = editCur(m, day);
+    const key = m.slackId + '|' + day.ymd;
+    return el('div', { class: 'erow' + (day.future ? ' future' : ''), 'data-ymd': day.ymd, 'data-key': key, css: cols },
+      el('span', { class: 'edate' + (day.wd === 0 ? ' sun' : day.wd === 6 ? ' sat' : '') }, day.label),
+      el('div', { class: 'pills' }),
+      m.tasks.map(function (t) {
+        return el('input', { type: 'text', class: 'h', 'data-task': t, value: cur.hours[t] || '', maxlength: '4', disabled: busy || day.future,
+          'aria-label': day.label + ' ' + t + 'の時間',
+          on: { input: function (e) {
+            const v = e.target.value;
+            setEdit(m, day, function (r) { r.hours[t] = v; });
+          } } });
+      }),
+      el('span', { class: 'tot' }),
+      el('button', { type: 'button', class: 'nt-btn', 'aria-expanded': 'false', 'aria-label': day.label + 'の作業の詳細',
+        on: { click: function () {
+          if (editOpen[key]) delete editOpen[key];
+          else editOpen[key] = true;
+          refreshEditRow(key, false);
+        } } },
+        el('span', { class: 'nt-sum' }), el('span', { class: 'nt-arrow', 'aria-hidden': 'true' })));
+  });
+  const table = el('section', { class: 'card edit-table', 'aria-label': m.name + 'さんの' + m.label + 'の報告' },
+    headRow, rows);
+  return [head, toolbar, bar, confirm, table,
+    el('p', { class: 'hint' }, '時間は0〜12、30分単位（1時間30分は 1.5）。1日の合計は24時間まで。今日より先の日は直せません。時間を0にした作業内容の「何をしたか」は保存されません。承認待ちの申請がある日を直すと、その申請は「取り下げ」になります。')];
+}
+function setMembers(list, text) {
+  D.memberList = list;
+  editStale = true;
+  message = text ? { text: text } : null;
+}
+function membersView() {
+  return [
+    el('div', { class: 'toolbar-left' },
+      el('h1', null, 'メンバーと作業内容'),
+      el('p', { class: 'hint' }, '作業内容は、その人の報告フォームにこの順番で並びます（5個くらいまでがおすすめ。スマホで1画面に収まります）。▲▼で順番を変えられます。外しても、過去の報告はそのまま残ります。'),
+      el('p', { class: 'hint' }, '状態が「有効」で、毎日のリマインドが「オン」の人に、毎日の依頼DMが届きます（オン／オフは本人が報告フォームで切り替えます）。言語を「English」にすると、その人のDMと報告フォームが英語になります。')),
+    urlCard(),
+    D.memberList.map(memberRow),
+    newMemberForm(),
+    testDmCard()
+  ];
+}
+function testDmCard() {
+  const list = D.memberList.filter(function (m) { return m.active; });
+  const ids = list.filter(function (m) { return testPicked[m.slackId]; }).map(function (m) { return m.slackId; });
+  const all = list.length > 0 && ids.length === list.length;
+  return el('section', { id: 'test-dm', class: 'card' },
+    el('h2', null, 'テスト：依頼DMを送る'),
+    list.length ? [
+      el('p', { class: 'hint' }, 'DMを送る人を選んでください（状態が「有効」の人だけ出ています）。毎日のDMと同じ、今日のリンク付きのDMが届きます（リマインドがオフの人にも送ります）。'),
+      el('div', { class: 'test-list', role: 'group', 'aria-label': 'テストDMを送る人' }, list.map(function (m) {
+        return el('label', { class: 'pick' },
+          el('input', { type: 'checkbox', class: 'test-pick', value: m.slackId, checked: !!testPicked[m.slackId], disabled: busy,
+            on: { change: function (e) { testPicked[m.slackId] = e.target.checked; testResults = null; render(); } } }),
+          el('span', null, m.name),
+          m.lang === 'en' ? el('span', { class: 'tag' }, 'English') : null);
+      })),
+      el('div', { class: 'test-bar' },
+        el('button', { type: 'button', class: 'btn btn-outline', disabled: busy, on: { click: function () {
+          list.forEach(function (m) { testPicked[m.slackId] = !all; });
+          testResults = null;
+          render();
+        } } }, all ? 'すべて外す' : 'すべて選ぶ'),
+        el('button', { type: 'button', id: 'send-test', class: 'btn btn-fill', disabled: busy || !ids.length, on: { click: function () {
+          call('sendTestDms', [ids], function (res) { testResults = res; message = null; });
+        } } }, busy ? '送信中…' : '選んだ人に送る（' + ids.length + '人）')),
+      testResults ? el('ul', { class: 'test-results', role: 'status' }, testResults.map(function (r) {
+        return el('li', { class: r.ok ? null : 'ng' }, r.name + '：' + (r.ok ? '送りました' : '失敗（' + r.error + '）'));
+      })) : null
+    ] : el('p', { class: 'empty' }, '有効なメンバーがいません。'));
+}
+function urlCard() {
+  const isSend = confirmUrlAll === 'send';
+  return el('section', { class: 'card url-card' },
+    el('h2', null, '専用アドレス'),
+    el('p', { class: 'hint' }, 'メンバーは、自分専用のアドレス（ブックマーク）から報告フォームを開きます。1人ずつの表示・送信・作り直しは、各メンバーの欄からできます。'),
+    el('div', { class: 'url-actions' },
+      el('button', { type: 'button', id: 'send-all-urls', class: 'btn btn-outline', disabled: busy || !!confirmUrlAll,
+        on: { click: function () { confirmUrlAll = 'send'; urlResults = null; message = null; render(); } } }, '全員に専用アドレスを送る'),
+      el('button', { type: 'button', id: 'reissue-all', class: 'btn btn-warn', disabled: busy || !!confirmUrlAll,
+        on: { click: function () { confirmUrlAll = 'reissue'; urlResults = null; message = null; render(); } } }, '全員の鍵を作り直して送る')),
+    confirmUrlAll
+      ? el('div', { class: 'confirm', role: 'alertdialog', 'aria-label': isSend ? '全員に送る確認' : '全員の鍵を作り直す確認' },
+          el('b', null, isSend ? '有効なメンバー全員に、専用アドレスを DM で送りますか？' : '全員の鍵を作り直して、新しいアドレスを送りますか？'),
+          el('span', null, isSend
+            ? '休止中の人と、開始日がまだ先の人には送りません（毎日のリマインドがオンなら、最初の毎日のDMで届きます）。'
+            : '今のアドレスはすべて使えなくなります。公開ページが書き換えられたと気づいたときなどに使います。休止中の人と開始日が先の人は、作り直すだけで送りません。'),
+          el('div', { class: 'confirm-btns' },
+            el('button', { type: 'button', id: 'url-all-yes', class: 'confirm-yes', disabled: busy, on: { click: function () {
+              const reissue = !isSend;
+              call(isSend ? 'sendAllMemberUrls' : 'reissueAllMemberUrls', [], function (res) {
+                confirmUrlAll = '';
+                urlResults = res;
+                if (reissue) Object.keys(shownUrl).forEach(function (k) { delete shownUrl[k]; });
+              });
+            } } }, isSend ? '送る' : '作り直して送る'),
+            el('button', { type: 'button', id: 'url-all-no', class: 'confirm-no', disabled: busy,
+              on: { click: function () { confirmUrlAll = ''; render(); } } }, 'やめる')))
+      : null,
+    urlResults
+      ? el('ul', { class: 'url-results' }, urlResults.map(function (r) {
+          return el('li', { class: r.ok ? null : 'ng' }, r.name + '：' + (!r.ok ? '送れませんでした（' + r.error + '）' : r.sent ? '送りました' : '作り直しました（休止中・開始前のため送っていません）'));
+        }))
+      : null);
+}
+function memberRow(m) {
+  const id = m.slackId;
+  function seg(cls, label, options, current, onPick) {
+    return [
+      el('span', { class: 'seg-label' }, label),
+      el('div', { class: 'seg ' + cls, role: 'group', 'aria-label': m.name + 'の' + label },
+        options.map(function (o) {
+          const on = o.value === current;
+          return el('button', { type: 'button', class: (on ? 'on' : '') + (on && o.rest ? ' rest' : ''), 'aria-pressed': String(on), disabled: busy,
+            on: { click: function () { if (!on) onPick(o.value); } } }, o.label);
+        }))
+    ];
+  }
+  const tasks = m.tasks.map(function (t, i) {
+    return el('div', { class: 't' },
+      el('span', { class: 'no' }, String(i + 1)),
+      el('span', { class: 'nm', title: t }, t),
+      el('button', { type: 'button', class: 'up', 'aria-label': t + 'を上へ', disabled: busy || i === 0, on: { click: function () {
+        call('moveMemberTask', [id, t, -1], function (list) { setMembers(list); });
+      } } }, '▲'),
+      el('button', { type: 'button', class: 'down', 'aria-label': t + 'を下へ', disabled: busy || i === m.tasks.length - 1, on: { click: function () {
+        call('moveMemberTask', [id, t, 1], function (list) { setMembers(list); });
+      } } }, '▼'),
+      el('button', { type: 'button', class: 'del', 'aria-label': t + 'を外す', disabled: busy, on: { click: function () {
+        call('removeMemberTask', [id, t], function (list) { setMembers(list, m.name + 'さんの作業内容から「' + t + '」を外しました。'); });
+      } } }, '✕'));
+  });
+  const inputId = 'new-task-' + id;
+  return el('section', { class: 'mem' + (m.active ? '' : ' off'), 'data-slack': id },
+    el('div', { class: 'side' },
+      el('div', { class: 'who' }, el('b', null, m.name), el('span', null, id + (m.start ? '　開始日 ' + m.start : ''))),
+      seg('status', '状態', [{ value: true, label: '有効' }, { value: false, label: '休止中', rest: true }], m.active, function (v) {
+        call('setMemberStatus', [id, v], function (list) { setMembers(list, m.name + 'さんを「' + (v ? '有効' : '休止中') + '」にしました。'); });
+      }),
+      seg('lang', '言語', [{ value: 'ja', label: '日本語' }, { value: 'en', label: 'English' }], m.lang, function (v) {
+        call('setMemberLang', [id, v], function (list) { setMembers(list, m.name + 'さんの言語を「' + (v === 'en' ? 'English' : '日本語') + '」にしました。'); });
+      }),
+      el('span', { class: 'remind-state' }, '毎日のリマインド：' + (m.remind ? 'オン' : 'オフ')),
+      el('div', { class: 'url-btns' },
+        el('button', { type: 'button', class: 'btn-mini show-url', disabled: busy, on: { click: function () {
+          call('getMemberUrl', [id], function (url) { shownUrl[id] = url; message = null; });
+        } } }, 'アドレスを表示'),
+        el('button', { type: 'button', class: 'btn-mini send-url', disabled: busy || !m.active, title: m.active ? null : '休止中の人には送れません', on: { click: function () {
+          call('sendMemberUrl', [id], function (r) {
+            message = { text: r.ok ? m.name + 'さんに専用アドレスを送りました。' : m.name + 'さんに送れませんでした（' + r.error + '）。' };
+          });
+        } } }, 'DMで送る'),
+        el('button', { type: 'button', class: 'btn-mini danger reissue-url', disabled: busy, on: { click: function () {
+          confirmReissue = id; message = null; render();
+        } } }, '作り直して送る')),
+      shownUrl[id]
+        ? el('input', { type: 'text', class: 'url-box', readonly: true, value: shownUrl[id], 'aria-label': m.name + 'さんの専用アドレス',
+            on: { focus: function (e) { e.target.select(); } } })
+        : null,
+      confirmReissue === id
+        ? el('div', { class: 'confirm', role: 'alertdialog', 'aria-label': m.name + 'さんのアドレスの作り直しの確認' },
+            el('b', null, m.name + 'さんのアドレスを作り直しますか？'),
+            el('span', null, '今のアドレスは使えなくなり、新しいアドレスを本人にDMで送ります（休止中・開始前の人には送りません）。アドレスが漏れたかもしれないときに使います。'),
+            el('div', { class: 'confirm-btns' },
+              el('button', { type: 'button', class: 'confirm-yes', disabled: busy, on: { click: function () {
+                call('reissueMemberUrl', [id], function (r) {
+                  confirmReissue = null;
+                  delete shownUrl[id];
+                  message = { text: !r.ok
+                    ? m.name + 'さんのアドレスは作り直しましたが、DMを送れませんでした（' + r.error + '）。「アドレスを表示」からコピーして渡してください。'
+                    : r.sent ? m.name + 'さんのアドレスを作り直して送りました。' : m.name + 'さんのアドレスを作り直しました（休止中・開始前のため送っていません）。' };
+                });
+              } } }, '作り直して送る'),
+              el('button', { type: 'button', class: 'confirm-no', disabled: busy, on: { click: function () { confirmReissue = null; render(); } } }, 'やめる')))
+        : null,
+      confirmDelete === id
+        ? el('div', { class: 'confirm', role: 'alertdialog', 'aria-label': m.name + 'さんの削除の確認' },
+            el('b', null, m.name + 'さんを削除しますか？'),
+            el('span', null, '過去の報告は残ります。DMは届かなくなります。また参加する可能性がある人は「休止中」がおすすめです。'),
+            el('div', { class: 'confirm-btns' },
+              el('button', { type: 'button', class: 'confirm-yes', disabled: busy, on: { click: function () {
+                call('deleteMember', [id], function (list) { confirmDelete = null; dropEditsFor(id); setMembers(list, m.name + 'さんを削除しました。'); });
+              } } }, '削除する'),
+              el('button', { type: 'button', class: 'confirm-no', disabled: busy, on: { click: function () { confirmDelete = null; render(); } } }, 'やめる')))
+        : el('button', { type: 'button', class: 'del-member', disabled: busy, on: { click: function () { confirmDelete = id; message = null; render(); } } }, 'このメンバーを削除')),
+    el('div', { class: 'body' },
+      m.tasks.length ? el('div', { class: 'tl' }, tasks)
+        : el('p', { class: 'empty' }, '作業内容がありません。この人のフォームには何も並びません。'),
+      el('div', { class: 'add' },
+        el('label', { for: inputId, class: 'sr' }, m.name + 'さんに追加する作業内容'),
+        el('input', { id: inputId, type: 'text', maxlength: '40', placeholder: '作業内容を追加（例：データ分析）', value: drafts[id] || '',
+          on: {
+            input: function (e) { drafts[id] = e.target.value; },
+            keydown: function (e) { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) addTask(); }
+          } }),
+        el('button', { type: 'button', class: 'btn btn-outline', disabled: busy, on: { click: addTask } }, '追加'))));
+  function addTask() {
+    const name = (drafts[id] || '').trim();
+    call('addMemberTask', [id, name], function (list) { drafts[id] = ''; setMembers(list, m.name + 'さんに「' + name + '」を追加しました。'); });
+  }
+}
+function newMemberForm() {
+  function field(id, key, placeholder, type, width) {
+    return [
+      el('label', { for: id, class: 'sr' }, placeholder),
+      el('input', { id: id, type: type || 'text', placeholder: placeholder, value: newMember[key], css: width ? 'width:' + width : null,
+        on: { input: function (e) { newMember[key] = e.target.value; } } })
+    ];
+  }
+  return el('section', { class: 'card dashed' },
+    el('h2', null, 'メンバーを追加'),
+    el('p', { class: 'hint' }, 'SlackユーザーIDは、Slackでその人のプロフィールを開き「︙（その他）」→「メンバーIDをコピー」で取れます（Uから始まる文字列）。追加した人は「有効」「日本語」で始まります。'),
+    el('div', { class: 'newmem' },
+      field('new-name', 'name', '名前', 'text', '180px'),
+      field('new-slack', 'slackId', 'SlackユーザーID（U…）', 'text', '210px'),
+      field('new-start', 'start', '開始日（任意）', 'date', '170px'),
+      el('button', { type: 'button', id: 'add-member', class: 'btn btn-fill', disabled: busy, on: { click: function () {
+        const name = newMember.name.trim();
+        call('addMember', [name, newMember.slackId.trim(), newMember.start], function (list) {
+          newMember.name = ''; newMember.slackId = ''; newMember.start = '';
+          setMembers(list, name + 'さんを追加しました。続けて作業内容を割り当ててください。');
+        });
+      } } }, '追加')));
+}
+function gate(text) {
+  const app = document.getElementById('app');
+  app.textContent = '';
+  add(app, el('div', { class: 'page' }, el('p', { class: 'err', role: 'alert' }, text)));
+}
+function start() {
+  if (window.top !== window.self) return;
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.getRegistrations().then(function (list) {
+      list.forEach(function (reg) { if (location.href.indexOf(reg.scope) === 0) reg.unregister(); });
+    }, function () {});
+    if (navigator.serviceWorker.controller) { gate(SW_MSG); return; }
+  }
+  if (!KEY) { gate(KEY_MSG); return; }
+  loadMonth('');
+}
+start();
+</script>
+</body>
+</html>
